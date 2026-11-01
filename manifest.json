@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "记一笔",
+  "short_name": "记一笔",
+  "description": "个人财务记账 PWA 应用",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d6efd"
+}
