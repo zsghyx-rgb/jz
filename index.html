@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title id="app-title">记一笔 v3.8.0</title>
+    <title id="app-title">记一笔 v3.8.1</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
@@ -1474,6 +1474,19 @@ select.compact-form-control { height: 2.1rem; }
                 </div>
             </div>
 
+            <!-- GAS 增量同步（Google 表格存密文行） -->
+            <div class="border rounded p-2 mb-2">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold"><i class="bi bi-table"></i> GAS 增量同步（Google 表格）</span>
+                    <span id="sheet-mode-badge" class="badge bg-secondary" style="font-size:0.65rem;">未启用</span>
+                </div>
+                <div class="d-flex gap-1 flex-wrap">
+                    <button class="btn btn-sm btn-primary" type="button" onclick="sbMigrateNow('sheet')">迁移当前数据到 Google 表格</button>
+                    <button class="btn btn-sm btn-outline-danger" type="button" id="rows-back-gas-btn" onclick="sbUseGasMode()" style="display:none;">切回 GAS 整包</button>
+                </div>
+                <div class="form-text">使用上方的 GAS URL 与 Token；需先部署新版 Code.gs。迁移前请先用 GAS 整包方式登录并解密数据。</div>
+            </div>
+
             <!-- Supabase 连接（替代 GAS 的数据同步后端） -->
             <div class="border rounded p-2 mb-2">
                 <div class="d-flex align-items-center justify-content-between mb-1">
@@ -1486,7 +1499,7 @@ select.compact-form-control { height: 2.1rem; }
                 <div class="d-flex gap-1 flex-wrap">
                     <button class="btn btn-sm btn-outline-success" type="button" onclick="saveSupabaseConfig()">保存</button>
                     <button class="btn btn-sm btn-outline-secondary" type="button" onclick="sbCreateAccount()">创建云端账号</button>
-                    <button class="btn btn-sm btn-primary" type="button" onclick="sbMigrateNow()">迁移当前数据到 Supabase</button>
+                    <button class="btn btn-sm btn-primary" type="button" onclick="sbMigrateNow('supabase')">迁移当前数据到 Supabase</button>
                     <button class="btn btn-sm btn-outline-danger" type="button" id="sb-back-gas-btn" onclick="sbUseGasMode()" style="display:none;">切回 GAS</button>
                 </div>
                 <div class="form-text">迁移前请先用 GAS 方式登录并解密数据（看到用户按钮后），再点“迁移”。</div>
@@ -1568,7 +1581,7 @@ select.compact-form-control { height: 2.1rem; }
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.8.0</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.8.1</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -2324,7 +2337,7 @@ select.compact-form-control { height: 2.1rem; }
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v3.8.0</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v3.8.1</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -2900,7 +2913,7 @@ let currentAssetAggregation = 'month';
 let transactionDisplayMode = localStorage.getItem('APP_trans_display_mode') || 'all';
 let currentUserFilterValue = localStorage.getItem('APP_trans_user_filter') || 'all';
 
-const APP_VERSION = '3.8.0';
+const APP_VERSION = '3.8.1';
 
 // ── 数据同步相关日期常量 ──────────────────────────────────────
 // 约束：STALE_CACHE_DAYS（本地缓存过期天数）必须 ≤ DELETED_LOG_RETENTION_DAYS（删除日志保留天数），
@@ -3004,7 +3017,8 @@ const SB_PULL_OVERLAP = 20;   // 拉取时往回多取 20 个序号，防止并�
 const SB_PUSH_BATCH = 200;
 const SB_KIND_LIST = { acc: 'accounts', txn: 'transactions', plan: 'plannedTransactions' };
 
-let BACKEND = localStorage.getItem('APP_backend') === 'supabase' ? 'supabase' : 'gas';
+// BACKEND：'gas' = 原来的整包加密文件；'sheet' = GAS + Google 表格逐条增量；'supabase' = Supabase 逐条增量
+let BACKEND = ['supabase', 'sheet'].includes(localStorage.getItem('APP_backend')) ? localStorage.getItem('APP_backend') : 'gas';
 let SB_URL = (localStorage.getItem('APP_sb_url') || '').replace(/\/+$/, '');
 let SB_KEY = localStorage.getItem('APP_sb_key') || '';
 let SB_EMAIL = localStorage.getItem('APP_sb_email') || '';
@@ -3012,7 +3026,27 @@ let _sbSession = null;
 
 function sbConfigured() { return !!(SB_URL && SB_KEY && SB_EMAIL); }
 function useSupabase() { return BACKEND === 'supabase' && sbConfigured(); }
+function useSheet() { return BACKEND === 'sheet' && !!GAS_URL; }
+function useRows() { return useSupabase() || useSheet(); }   // 逐条增量同步（两种后端共用同一套同步逻辑）
 function cloudConfigured() { return useSupabase() || !!GAS_URL; }
+
+/* ── GAS（Google 表格）传输层：与 Supabase 传输层提供相同的能力 ── */
+async function sheetCall(params, body) {
+    const opts = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body) };
+    const r = await fetch(gasRequestUrl(params || {}), opts);
+    const t = (await r.text()).trim();
+    if (t === 'UNAUTHORIZED') throw new Error('GAS 访问令牌不正确');
+    let j;
+    try { j = JSON.parse(t); } catch (_) { throw new Error('GAS 返回异常（是否已部署新版 Code.gs？）：' + t.slice(0, 60)); }
+    if (j && j.error) throw new Error('GAS：' + j.error);
+    return j;
+}
+
+/** 每天第一次同步后，让服务端做一份快照备份（失败不影响同步） */
+function sbEnsureBackup() {
+    if (useSheet()) return sheetCall({ action: 'ensureSnapshot' }).catch(() => {});
+    return sbRest('POST', 'rpc/ensure_daily_backup', { body: {} }).catch(() => {});
+}
 
 /* ── 认证：一个共享的 Supabase 账号，登录密码由 App 密码派生（不直接使用原密码） ── */
 function sbAuthPassword(pw) { return CryptoJS.SHA256('jibi-sb:' + pw).toString(); }
@@ -3214,6 +3248,17 @@ function sbApplyConfig(data, cfg) {
 const SB_ROW_COLS = 'id,kind,owner,enc,ts,deleted,seq';
 
 async function sbPullRows(sinceSeq) {
+    if (useSheet()) {
+        const out = [];
+        let since = sinceSeq;
+        for (;;) {
+            const r = await sheetCall({ action: 'pull', since, limit: 2000 });
+            out.push(...r.rows);
+            if (!r.more || !r.rows.length) break;
+            since = r.rows[r.rows.length - 1].seq;
+        }
+        return out;
+    }
     const rows = [];
     let last = sinceSeq;
     for (;;) {
@@ -3226,6 +3271,11 @@ async function sbPullRows(sinceSeq) {
 }
 
 async function sbPullByIds(ids) {
+    if (useSheet()) {
+        const out = [];
+        for (let i = 0; i < ids.length; i += 200) out.push(...(await sheetCall({}, { action: 'pullIds', ids: ids.slice(i, i + 200) })).rows);
+        return out;
+    }
     const out = [];
     for (let i = 0; i < ids.length; i += 100) {
         const list = ids.slice(i, i + 100).map(x => '"' + x.replace(/"/g, '') + '"').join(',');
@@ -3344,10 +3394,18 @@ async function sbPushUpserts(upserts, state) {
             id: item.id, kind: item.kind, owner: item.owner,
             enc: sbEnc(item.payload), ts: sbTsOf(item), deleted: false
         }));
-        const res = await sbRest('POST', 'records?on_conflict=id&select=id', {
-            body, headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
-        });
-        const ok = new Set((res || []).map(r => String(r.id)));
+        let okIds;
+        if (useSheet()) {
+            const r = await sheetCall({}, { action: 'push', rows: body });
+            if (r.tooLarge && r.tooLarge.length) throw new Error(`有 ${r.tooLarge.length} 条记录内容过大（超过单元格上限），无法同步`);
+            okIds = r.accepted || [];
+        } else {
+            const res = await sbRest('POST', 'records?on_conflict=id&select=id', {
+                body, headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+            });
+            okIds = (res || []).map(r => r.id);
+        }
+        const ok = new Set(okIds.map(String));
         batch.forEach(({ item, sig }) => {
             if (ok.has(item.id)) { state.synced[item.id] = sig; pushed++; }
             else rejected.push(item.id);
@@ -3357,6 +3415,14 @@ async function sbPushUpserts(upserts, state) {
 }
 
 async function sbPushTombstones(ids, state) {
+    if (useSheet()) {
+        for (let i = 0; i < ids.length; i += 200) {
+            const part = ids.slice(i, i + 200);
+            await sheetCall({}, { action: 'tombstone', ids: part, ts: Date.now() });
+            part.forEach(id => { state.synced[id] = 'X'; });
+        }
+        return;
+    }
     for (let i = 0; i < ids.length; i += 100) {
         const part = ids.slice(i, i + 100);
         const list = part.map(x => '"' + x.replace(/"/g, '') + '"').join(',');
@@ -3379,7 +3445,8 @@ async function sbSyncCore(options = {}) {
     const summary = { newItems: 0, changed: 0, configChanged: false, pushed: 0, deleted: 0, aborted: '' };
 
     // 1) 拉取
-    const rows = await sbPullRows(Math.max(0, state.lastSeq - SB_PULL_OVERLAP));
+    // Supabase 并发提交可能乱序，往回多拉一小段；GAS 表格的拉取/写入都在同一把锁里，不会乱序，无需重叠
+    const rows = await sbPullRows(Math.max(0, state.lastSeq - (useSheet() ? 0 : SB_PULL_OVERLAP)));
     const applied = sbApplyRows(data, sbDecryptRows(rows, userPassword), state);
     summary.newItems += applied.newItems;
     summary.changed += applied.changed;
@@ -3474,7 +3541,7 @@ async function sbSync(manual = false, forcePush = false) {
         sbRefreshAfterMerge(s);
         sbPersistLocal(s.state, s.changed > 0 || s.pushed > 0 || s.deleted > 0);
         clearUnsavedFlag();
-        sbRest('POST', 'rpc/ensure_daily_backup', { body: {} }).catch(() => {});
+        sbEnsureBackup();
         if (s.newItems > 0) showToast(`已同步 ${s.newItems} 条新数据`, 'success');
         else showToast('已同步', 'success');
     } catch (err) {
@@ -3495,7 +3562,7 @@ async function sbBackgroundSync() {
         if (s.aborted) { showToast('后台同步已中止：' + s.aborted, 'warning', 4000); return; }
         sbPersistLocal(s.state, s.changed > 0 || s.pushed > 0 || s.deleted > 0);
         clearUnsavedFlag();
-        sbRest('POST', 'rpc/ensure_daily_backup', { body: {} }).catch(() => {});
+        sbEnsureBackup();
         const isFormOpen = $('add-transaction-section') && $('add-transaction-section').classList.contains('show');
         if (isFormOpen) {
             if (s.changed > 0) { window._pendingUIRefresh = true; showToast(s.newItems > 0 ? `后台已同步 ${s.newItems} 条新数据，关闭表单后自动刷新` : '后台已同步', 'info', 3000); }
@@ -3535,15 +3602,17 @@ function sbAssemble(rows, pw) {
 async function sbInitialLoad(password) {
     const errEl = $('password-error');
     try {
-        showToast('正在连接 Supabase…', 'syncing', 0);
-        try { await sbSignIn(password); }
-        catch (e) {
-            if (e.status === 400 || e.status === 401) throw new Error('密码错误，或云端账号尚未创建（请先在“连接设置”里创建云端账号）');
-            throw e;
+        showToast(useSheet() ? '正在从 Google 表格加载…' : '正在连接 Supabase…', 'syncing', 0);
+        if (useSupabase()) {
+            try { await sbSignIn(password); }
+            catch (e) {
+                if (e.status === 400 || e.status === 401) throw new Error('密码错误，或云端账号尚未创建（请先在“连接设置”里创建云端账号）');
+                throw e;
+            }
         }
         userPassword = password; // sbRest 需要
         const rows = await sbPullRows(0);
-        if (!rows.length) throw new Error('云端还没有数据。请先用 GAS 方式登录，再在“连接设置”里执行“迁移到 Supabase”');
+        if (!rows.length) throw new Error('云端还没有数据。请先用 GAS 整包方式登录，再在“连接设置”里执行“迁移”');
         const { data, state, hasConfig } = sbAssemble(rows, password);
         if (!hasConfig) throw new Error('云端数据缺少配置记录，无法加载');
         inMemoryLoadedData = data;
@@ -3554,7 +3623,7 @@ async function sbInitialLoad(password) {
         if (errEl) errEl.classList.add('d-none');
         sbPersistLocal(state, true);
         localStorage.setItem('APP_last_sync_time', String(Date.now()));
-        showToast('数据已从 Supabase 加载', 'success', 2500);
+        showToast(useSheet() ? '数据已从 Google 表格加载' : '数据已从 Supabase 加载', 'success', 2500);
         onDataLoaded();
     } catch (e) {
         userPassword = '';
@@ -3565,10 +3634,17 @@ async function sbInitialLoad(password) {
 
 /* ── 备份（服务端每天自动快照一份，保留 30 天） ── */
 async function sbListBackups() {
+    if (useSheet()) return (await sheetCall({ action: 'listSnapshots' })).map(b => ({ name: b.name, createdAt: b.createdAt, size: b.size }));
     const list = await sbRest('GET', 'backups?select=day,row_count,created_at&order=day.desc');
     return (list || []).map(b => ({ name: b.day, createdAt: new Date(b.created_at).getTime(), rows: b.row_count, size: 0 }));
 }
 async function sbReadBackup(day) {
+    if (useSheet()) {
+        const r = await fetch(gasRequestUrl({ action: 'readSnapshot', file: day }));
+        const t = (await r.text()).trim();
+        if (!t) throw new Error('备份不存在');
+        return sbAssemble(JSON.parse(t), userPassword).data;
+    }
     const res = await sbRest('GET', `backups?select=content&day=eq.${encodeURIComponent(day)}`);
     if (!res || !res.length) throw new Error('备份不存在');
     return sbAssemble(res[0].content, userPassword).data;
@@ -3586,6 +3662,8 @@ function gasRequestUrl(options = {}) {
     if (options.fileName) params.push(`fileName=${encodeURIComponent(options.fileName)}`);
     if (options.mimeType) params.push(`mimeType=${encodeURIComponent(options.mimeType)}`);
     if (options.fileId)   params.push(`fileId=${encodeURIComponent(options.fileId)}`);
+    if (options.since !== undefined) params.push(`since=${encodeURIComponent(options.since)}`);
+    if (options.limit !== undefined) params.push(`limit=${encodeURIComponent(options.limit)}`);
     const device = localStorage.getItem('APP_device_name') || guessDeviceName();
     params.push(`device=${encodeURIComponent(device)}`);
     return params.length ? `${GAS_URL}?${params.join('&')}` : GAS_URL;
@@ -3604,6 +3682,13 @@ function initSupabaseUI() {
     badge.textContent = on ? '已启用' : (sbConfigured() ? '已配置，未启用' : '未启用');
     badge.className = 'badge ' + (on ? 'bg-success' : 'bg-secondary');
     $('sb-back-gas-btn').style.display = on ? '' : 'none';
+    const sb2 = $('sheet-mode-badge');
+    if (sb2) {
+        const sOn = useSheet();
+        sb2.textContent = sOn ? '已启用' : '未启用';
+        sb2.className = 'badge ' + (sOn ? 'bg-success' : 'bg-secondary');
+        $('rows-back-gas-btn').style.display = sOn ? '' : 'none';
+    }
 }
 
 function saveSupabaseConfig() {
@@ -3633,19 +3718,27 @@ async function sbCreateAccount() {
     }
 }
 
-async function sbMigrateNow() {
-    if (!sbConfigured()) { alert('请先填写并保存连接信息'); return; }
-    if (!inMemoryLoadedData || !userPassword) { alert('请先用 GAS 方式加载并解密数据（输入密码后看到用户选择按钮），再点“迁移”。'); return; }
-    if (!confirm('将把当前数据逐条加密上传到 Supabase，并校验。\nGAS 上的数据不会被改动或删除，可随时切回。\n\n继续？')) return;
+async function sbMigrateNow(target = 'supabase') {
+    const isSheet = target === 'sheet';
+    if (isSheet && !GAS_URL) { alert('请先在上方填写并保存 GAS URL / Token'); return; }
+    if (!isSheet && !sbConfigured()) { alert('请先填写并保存连接信息'); return; }
+    if (!inMemoryLoadedData || !userPassword) { alert('请先用 GAS 整包方式加载并解密数据（输入密码后看到用户选择按钮），再点“迁移”。'); return; }
+    if (BACKEND !== 'gas' && !confirm('当前已在使用增量同步。再次迁移会把本机数据与云端合并（较新的修改为准）。\n\n继续？')) return;
+    const label = isSheet ? 'Google 表格' : 'Supabase';
+    if (!confirm(`将把当前数据逐条加密上传到 ${label}，并校验。\n原有 GAS 整包数据不会被改动或删除，可随时切回。\n\n继续？`)) return;
+    const prev = BACKEND;
+    BACKEND = target; // 让传输层使用目标后端
     try {
-        showToast('正在登录 Supabase…', 'syncing', 0);
-        try { await sbSignIn(userPassword); }
-        catch (e) {
-            if (e.status === 400 || e.status === 401) throw new Error('登录失败：请先点“创建云端账号”（若已创建，说明这个邮箱的密码与当前数据密码不一致）');
-            throw e;
+        showToast(isSheet ? '正在连接 GAS…' : '正在登录 Supabase…', 'syncing', 0);
+        if (!isSheet) {
+            try { await sbSignIn(userPassword); }
+            catch (e) {
+                if (e.status === 400 || e.status === 401) throw new Error('登录失败：请先点“创建云端账号”（若已创建，说明这个邮箱的密码与当前数据密码不一致）');
+                throw e;
+            }
         }
-        const existing = await sbRest('GET', 'records?select=id&limit=1');
-        if (existing && existing.length && !confirm('云端已经有数据。继续将与当前数据合并（以较新的修改为准）。\n\n继续？')) { showToast('已取消迁移', 'info', 2000); return; }
+        const existing = await sbPullRows(0);
+        if (existing.length && !confirm('云端已经有数据。继续将与当前数据合并（以较新的修改为准）。\n\n继续？')) { BACKEND = prev; showToast('已取消迁移', 'info', 2000); return; }
 
         showToast('正在上传…', 'syncing', 0);
         const s = await sbSyncCore({ manual: true, freshState: true, force: true });
@@ -3660,20 +3753,20 @@ async function sbMigrateNow() {
         dec.forEach(({ row, rec }) => { if (!row.deleted) remoteMap.set(String(row.id), rec); });
         let bad = 0;
         local.forEach((item, id) => { const r = remoteMap.get(id); if (!r || sbSig(r) !== sbSig(item.payload)) bad++; });
-        if (bad) throw new Error(`校验发现 ${bad} 条记录与本地不一致，已中止，未切换到 Supabase。请重试或联系我。`);
+        if (bad) throw new Error(`校验发现 ${bad} 条记录与本地不一致，已中止，未切换。请重试或联系我。`);
 
         sbPersistLocal(s.state, true);
-        localStorage.setItem('APP_sb_state', JSON.stringify(s.state));
-        BACKEND = 'supabase'; localStorage.setItem('APP_backend', 'supabase');
+        localStorage.setItem('APP_backend', target);
         initSupabaseUI();
-        showToast(`迁移完成：${local.size} 条记录已校验一致，今后将使用 Supabase 同步`, 'success', 6000);
+        showToast(`迁移完成：${local.size} 条记录已校验一致，今后将使用 ${label} 同步`, 'success', 6000);
     } catch (e) {
+        BACKEND = prev;
         showToast('迁移失败：' + e.message, 'error', 0);
     }
 }
 
 function sbUseGasMode() {
-    if (!confirm('切回 GAS 模式？\n注意：Supabase 之后的修改不会自动回到 GAS，GAS 上是切换前的旧数据。')) return;
+    if (!confirm('切回 GAS 整包模式？\n注意：增量模式之后的修改不会自动回到整包文件，整包文件里是切换前的旧数据。')) return;
     BACKEND = 'gas'; localStorage.setItem('APP_backend', 'gas');
     localStorage.removeItem('APP_sb_state'); localStorage.removeItem('APP_raw_cache');
     location.reload();
@@ -4320,7 +4413,7 @@ function renderArchiveManagementUI() {
 }
 
 function checkArchivePrompt() {
-    if (useSupabase()) return; // Supabase 模式按条增量同步，无需存档
+    if (useRows()) return; // 逐条增量同步模式无需存档
     const now = new Date();
     const currentYear = now.getFullYear();
     if (now.getMonth() + 1 < 2 || now.getMonth() + 1 > 3) return; // 只在2-3月提示
@@ -4341,7 +4434,7 @@ function checkArchivePrompt() {
 }
 
 async function confirmArchive(year) {
-    if (useSupabase()) { alert('Supabase 模式下数据按条增量同步，不再需要按年存档。\n（已有的历史存档仍可在历史模式中查看，需要保留 GAS 连接。）'); return; }
+    if (useRows()) { alert('增量同步模式下数据按条同步，不再需要按年存档。\n（已有的历史存档仍可在历史模式中查看，需要保留 GAS 连接。）'); return; }
     const cnt = transactions.filter(t => t.date.startsWith(String(year)) && !t._isBaseline).length;
     if (cnt === 0) { showToast(`${year} 年没有可存档的数据`, 'warning'); return; }
     if (!confirm(`确定存档 ${year} 年的数据？\n\n共 ${cnt} 条记录将移入只读存档。\n存档数据不可恢复，只读，不能修改。`)) return;
@@ -5018,7 +5111,7 @@ async function syncToDrive(manual = false, forcePush = false) {
         if (manual) showToast('历史模式下不允许同步', 'warning');
         return;
     }
-    if (useSupabase()) return sbSync(manual, forcePush);
+    if (useRows()) return sbSync(manual, forcePush);
     if (!GAS_URL) {
         if (manual) alert('请先在登录界面填写并保存 GAS URL。');
         return;
@@ -5205,8 +5298,8 @@ async function loadFromDrive() {
         return;
     }
 
-    // ── Supabase：需要先输入密码才能登录并拉取（数据由密码端到端加密） ──
-    if (useSupabase()) {
+    // ── 逐条增量模式（Supabase / GAS 表格）：需要先输入密码才能解密并拉取（数据由密码端到端加密） ──
+    if (useRows()) {
         window._sbPendingInitial = true;
         window._driveMode = false;
         localStorage.removeItem('APP_sb_state'); // 没有可用缓存 → 状态作废，做全量拉取
@@ -5285,7 +5378,7 @@ async function loadFromDrive() {
 async function backgroundSyncAfterLogin() {
     if (!window._pendingBackgroundSync || !cloudConfigured() || offlineMode) return;
     window._pendingBackgroundSync = false;
-    if (useSupabase()) { await sbBackgroundSync(); return; }
+    if (useRows()) { await sbBackgroundSync(); return; }
 
     try {
         // ── 步骤1：核对版本 ──
@@ -8958,7 +9051,7 @@ async function loadBackupList() {
     container.innerHTML = '<span class="text-muted small"><i class="bi bi-hourglass-split"></i> 读取中…</span>';
     try {
         let backups;
-        if (useSupabase()) {
+        if (useRows()) {
             backups = await sbListBackups();
         } else {
             const resp = await fetch(gasRequestUrl({ action: 'listBackups' }));
@@ -9004,7 +9097,7 @@ async function openBackupCompare(fileName, dateStr) {
 
     try {
         let backupData = null;
-        if (useSupabase()) {
+        if (useRows()) {
             backupData = await sbReadBackup(fileName);
         } else {
         const resp = await fetch(gasRequestUrl({ action: 'readBackup', file: fileName }));
