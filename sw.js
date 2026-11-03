@@ -9,7 +9,7 @@
  *
  * 发布新版本时：只要改一下下面的 APP_VERSION（与 index.html 里的 APP_VERSION 保持一致），旧缓存会在激活时自动清理。
  */
-const APP_VERSION = '3.9.1';
+const APP_VERSION = '3.9.2';
 const SHELL_CACHE = `jibi-shell-v${APP_VERSION}`;
 const CDN_CACHE = 'jibi-cdn-v1';   // CDN 资源带版本号，长期有效，不随 APP_VERSION 清理
 

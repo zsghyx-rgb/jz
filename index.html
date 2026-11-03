@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title id="app-title">记一笔 v3.9.1</title>
+    <title id="app-title">记一笔 v3.9.2</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
@@ -1484,23 +1484,26 @@ select.compact-form-control { height: 2.1rem; }
             </div>
 
 
-            <!-- 更多选项（低频，默认折叠） -->
-            <details class="mt-2" id="login-more-options">
-                <summary class="small text-muted" style="cursor:pointer;"><i class="bi bi-three-dots"></i> 更多选项（同步方式 / 设备昵称 / 操作反馈 / 初始化）</summary>
-                <div class="pt-2">
-            <!-- GAS 增量同步（Google 表格存密文行） -->
-            <div class="border rounded p-2 mb-2">
+            <!-- 同步方式：由云端当前状态决定显示哪个按钮 -->
+            <div class="border rounded p-2 mb-2 mt-2">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold"><i class="bi bi-table"></i> GAS 增量同步（Google 表格）</span>
-                    <span id="sheet-mode-badge" class="badge bg-secondary" style="font-size:0.65rem;">未启用</span>
+                    <span class="small fw-bold"><i class="bi bi-table"></i> 同步方式</span>
+                    <span id="sheet-mode-badge" class="badge bg-secondary" style="font-size:0.65rem;">查询中</span>
                 </div>
+                <div id="sync-mode-server-line" class="small mb-2">正在查询云端同步方式…</div>
                 <div class="d-flex gap-1 flex-wrap">
-                    <button class="btn btn-sm btn-primary" type="button" onclick="incMigrateNow()">迁移当前数据到 Google 表格</button>
-                    <button class="btn btn-sm btn-outline-danger" type="button" id="rows-back-gas-btn" onclick="incUseGasMode()" style="display:none;">切回 GAS 整包</button>
+                    <button class="btn btn-sm btn-primary" type="button" id="mode-migrate-btn" style="display:none;" onclick="incMigrateNow()">迁移到 Google 表格（增量同步）</button>
+                    <button class="btn btn-sm btn-outline-danger" type="button" id="rows-back-gas-btn" style="display:none;" onclick="incUseGasMode()">返回 GAS 整包</button>
+                    <button class="btn btn-sm btn-warning" type="button" id="mode-align-btn" style="display:none;" onclick="incAlignMode()">与云端一致并重新加载</button>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="mode-retry-btn" style="display:none;" onclick="refreshSyncModeUI()">重试</button>
                 </div>
-                <div class="form-text">使用上方的 GAS URL 与 Token；需先部署新版 Code.gs。迁移前请先用 GAS 整包方式登录并解密数据。</div>
+                <div class="form-text">云端是整包时才显示“迁移”（迁移前请先登录并解密数据）；云端已是表格时只显示“返回整包”。</div>
             </div>
 
+            <!-- 更多选项（低频，默认折叠） -->
+            <details class="mt-2" id="login-more-options">
+                <summary class="small text-muted" style="cursor:pointer;"><i class="bi bi-three-dots"></i> 更多选项（设备昵称 / 操作反馈 / 初始化）</summary>
+                <div class="pt-2">
             <div class="mb-3">
                 <label class="form-label small mb-1">设备昵称 <span class="text-muted">(可选，用于访问日志)</span></label>
                 <div class="input-group input-group-sm">
@@ -1566,7 +1569,7 @@ select.compact-form-control { height: 2.1rem; }
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.9.1</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.9.2</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -2284,7 +2287,7 @@ select.compact-form-control { height: 2.1rem; }
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v3.9.1</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v3.9.2</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -2862,7 +2865,7 @@ let currentUserFilterValue = localStorage.getItem('APP_trans_user_filter') || 'a
 
 // 清理已移除的 AI 功能遗留在本机的密钥/配置
 ['ai_api_url', 'ai_api_key', 'ai_model'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
-const APP_VERSION = '3.9.1';
+const APP_VERSION = '3.9.2';
 
 // ── 数据同步相关日期常量 ──────────────────────────────────────
 // 约束：STALE_CACHE_DAYS（本地缓存过期天数）必须 ≤ DELETED_LOG_RETENTION_DAYS（删除日志保留天数），
@@ -3511,14 +3514,52 @@ function gasRequestUrl(options = {}) {
 
 
 /* ───────── 同步方式设置（登录页） ───────── */
-function initSyncModeUI() {
+function initSyncModeUI() { refreshSyncModeUI(); }
+
+/** 向云端查询当前同步方式并刷新面板：整包 → 只显示“迁移到表格”；表格 → 只显示“返回整包” */
+async function refreshSyncModeUI() {
+    const line = $('sync-mode-server-line');
+    if (!line) return;
+    const show = (id, on) => { const el = $(id); if (el) el.style.display = on ? '' : 'none'; };
+    ['mode-migrate-btn', 'rows-back-gas-btn', 'mode-align-btn', 'mode-retry-btn'].forEach(id => show(id, false));
     const badge = $('sheet-mode-badge');
-    if (!badge) return;
-    const on = useSheet();
-    badge.textContent = on ? '已启用' : '未启用';
-    badge.className = 'badge ' + (on ? 'bg-success' : 'bg-secondary');
-    const back = $('rows-back-gas-btn');
-    if (back) back.style.display = on ? '' : 'none';
+    const setBadge = (text, cls) => { if (badge) { badge.textContent = text; badge.className = 'badge ' + cls; } };
+    if (!GAS_URL || !GAS_TOKEN) {
+        line.textContent = '请先填写并保存 GAS URL 与 Token，才能查询云端的同步方式。';
+        setBadge('未连接', 'bg-secondary');
+        return;
+    }
+    line.textContent = '正在查询云端同步方式…';
+    setBadge('查询中', 'bg-secondary');
+    let srv = null, err = '';
+    try {
+        const r = await sheetCall({ action: 'mode' });
+        srv = r && r.mode === 'sheet' ? 'sheet' : 'gas';
+    } catch (e) { err = e.message || String(e); }
+    if (srv === null) {
+        line.innerHTML = '⚠ 无法读取云端同步方式。<br><span class="text-muted">可能是 GAS 脚本还是旧版（请部署新版 Code.gs 并“新建版本”），或 Token / 网络有问题。<br>详情：' + _escHtml(err.slice(0, 120)) + '</span>';
+        setBadge('读取失败', 'bg-warning text-dark');
+        show('mode-retry-btn', true);
+        return;
+    }
+    const local = useSheet() ? 'sheet' : 'gas';
+    const name = m => (m === 'sheet' ? 'Google 表格（增量同步）' : '整包文件 data.enc');
+    line.innerHTML = `云端当前：<b>${name(srv)}</b><br><span class="text-muted">本机当前：${name(local)}</span>`;
+    setBadge(srv === 'sheet' ? '表格增量' : '整包文件', srv === 'sheet' ? 'bg-success' : 'bg-secondary');
+    if (srv !== local) {
+        line.innerHTML += '<br><span class="text-danger">本机与云端不一致，请点下面的按钮对齐。</span>';
+        show('mode-align-btn', true);
+        return;
+    }
+    if (srv === 'gas') show('mode-migrate-btn', true);   // 云端是整包 → 只提供“迁移到表格”
+    else show('rows-back-gas-btn', true);                // 云端是表格 → 只提供“返回整包”
+}
+
+/** 让本机与云端的同步方式一致，并按新方式重新加载 */
+async function incAlignMode() {
+    await incCheckServerMode();
+    await refreshSyncModeUI();
+    loadFromDrive();
 }
 
 async function incMigrateNow() {
@@ -3550,13 +3591,11 @@ async function incMigrateNow() {
 
         incPersistLocal(s.state, true);
         localStorage.setItem('APP_backend', 'sheet');
-        initSyncModeUI();
+        refreshSyncModeUI();
         let notified = true;
         try { await incSetServerMode('sheet'); } catch (_) { notified = false; }
-        showToast(notified
-            ? `迁移完成：${local.size} 条记录已校验一致。其他设备下次打开会自动切换到增量同步`
-            : `迁移完成（${local.size} 条已校验），但未能通知云端切换，其他设备暂时不会自动切换。请确认已部署新版 Code.gs 后再点一次“迁移”`,
-            notified ? 'success' : 'warning', 8000);
+        if (notified) showToast(`迁移完成：${local.size} 条记录已校验一致。其他设备下次打开会自动切换到增量同步`, 'success', 8000);
+        else alert(`数据已迁移（${local.size} 条已校验一致），但没能通知云端切换，所以其他设备目前不会自动切换，仍会继续写旧的 data.enc！\n\n请先在 Apps Script 里部署新版 Code.gs（部署 → 管理部署 → 编辑 → 新版本），然后回到这里再点一次“迁移”。`);
     } catch (e) {
         BACKEND = prev;
         showToast('迁移失败：' + e.message, 'error', 0);
@@ -3635,7 +3674,8 @@ function saveGasUrl() {
     localStorage.setItem('APP_gas_url', val);
     GAS_URL = val;
     initGasUrlUI();
-    loadFromDrive();
+    refreshSyncModeUI();
+    if (GAS_TOKEN) loadFromDrive();   // 还没填 Token 时不加载（否则会先以“无令牌”去请求，并错过云端同步方式的检查）
 }
 
 function initGasTokenUI() {
@@ -3663,6 +3703,8 @@ function saveGasToken() {
     localStorage.setItem('APP_gas_token', val);
     GAS_TOKEN = val;
     initGasTokenUI();
+    refreshSyncModeUI();
+    if (GAS_URL && !offlineMode) loadFromDrive();   // URL 和 Token 都齐了：立刻按云端当前的同步方式加载
 }
 
 function guessDeviceName() {
@@ -4911,6 +4953,8 @@ async function syncToDrive(manual = false, forcePush = false) {
         if (manual) showToast('历史模式下不允许同步', 'warning');
         return;
     }
+    // 整包模式下每次同步前先确认云端有没有已迁移到增量同步（别的设备可能刚迁移过）
+    if (!useRows() && GAS_URL && !offlineMode) await incCheckServerMode();
     if (useRows()) return incSync(manual, forcePush);
     if (!GAS_URL) {
         if (manual) alert('请先在登录界面填写并保存 GAS URL。');
@@ -5184,6 +5228,7 @@ async function loadFromDrive() {
 async function backgroundSyncAfterLogin() {
     if (!window._pendingBackgroundSync || !cloudConfigured() || offlineMode) return;
     window._pendingBackgroundSync = false;
+    if (!useRows()) await incCheckServerMode();
     if (useRows()) { await incBackgroundSync(); return; }
 
     try {
