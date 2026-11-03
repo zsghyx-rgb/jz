@@ -1,7 +1,7 @@
-<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
+﻿<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title id="app-title">记一笔 v3.9.0</title>
+    <title id="app-title">记一笔 v3.9.1</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
@@ -1566,7 +1566,7 @@ select.compact-form-control { height: 2.1rem; }
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.9.0</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.9.1</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -2284,7 +2284,7 @@ select.compact-form-control { height: 2.1rem; }
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v3.9.0</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v3.9.1</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -2862,7 +2862,7 @@ let currentUserFilterValue = localStorage.getItem('APP_trans_user_filter') || 'a
 
 // 清理已移除的 AI 功能遗留在本机的密钥/配置
 ['ai_api_url', 'ai_api_key', 'ai_model'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
-const APP_VERSION = '3.9.0';
+const APP_VERSION = '3.9.1';
 
 // ── 数据同步相关日期常量 ──────────────────────────────────────
 // 约束：STALE_CACHE_DAYS（本地缓存过期天数）必须 ≤ DELETED_LOG_RETENTION_DAYS（删除日志保留天数），
@@ -2986,6 +2986,30 @@ async function sheetCall(params, body) {
     try { j = JSON.parse(t); } catch (_) { throw new Error('GAS 返回异常（是否已部署新版 Code.gs？）：' + t.slice(0, 60)); }
     if (j && j.error) throw new Error('GAS：' + j.error);
     return j;
+}
+
+/**
+ * 打开 App 时先问一下服务器“现在用哪种同步方式”，让多台设备保持一致：
+ * 一台设备迁移到增量同步后，其他设备下次打开会自动跟着切换，不会再去同步旧的 data.enc。
+ * 服务器还没升级到新版 Code.gs（不认识 mode 动作）时静默忽略，保持当前方式。
+ */
+async function incCheckServerMode() {
+    if (!GAS_URL) return;
+    try {
+        const r = await sheetCall({ action: 'mode' });
+        const srv = r && r.mode === 'sheet' ? 'sheet' : 'gas';
+        if (srv !== BACKEND) {
+            BACKEND = srv;
+            localStorage.setItem('APP_backend', srv);
+            localStorage.removeItem('APP_sb_state'); // 另一种后端的同步进度不能沿用，重新做一次完整比对
+            showToast(srv === 'sheet' ? '云端已切换为增量同步，本机已自动跟随' : '云端已切回整包同步，本机已自动跟随', 'info', 4000);
+        }
+    } catch (_) {}
+}
+
+/** 告诉服务器当前的同步方式（迁移成功 / 切回时调用），让其他设备跟随 */
+async function incSetServerMode(mode) {
+    return sheetCall({}, { action: 'setMode', mode });
 }
 
 /** 每天第一次同步后，让服务端做一份快照备份（失败不影响同步） */
@@ -3527,7 +3551,12 @@ async function incMigrateNow() {
         incPersistLocal(s.state, true);
         localStorage.setItem('APP_backend', 'sheet');
         initSyncModeUI();
-        showToast(`迁移完成：${local.size} 条记录已校验一致，今后将使用 Google 表格增量同步`, 'success', 6000);
+        let notified = true;
+        try { await incSetServerMode('sheet'); } catch (_) { notified = false; }
+        showToast(notified
+            ? `迁移完成：${local.size} 条记录已校验一致。其他设备下次打开会自动切换到增量同步`
+            : `迁移完成（${local.size} 条已校验），但未能通知云端切换，其他设备暂时不会自动切换。请确认已部署新版 Code.gs 后再点一次“迁移”`,
+            notified ? 'success' : 'warning', 8000);
     } catch (e) {
         BACKEND = prev;
         showToast('迁移失败：' + e.message, 'error', 0);
@@ -3536,9 +3565,11 @@ async function incMigrateNow() {
 
 function incUseGasMode() {
     if (!confirm('切回 GAS 整包模式？\n注意：增量模式之后的修改不会自动回到整包文件，整包文件里是切换前的旧数据。')) return;
-    BACKEND = 'gas'; localStorage.setItem('APP_backend', 'gas');
-    localStorage.removeItem('APP_sb_state'); localStorage.removeItem('APP_raw_cache');
-    location.reload();
+    incSetServerMode('gas').catch(() => {}).finally(() => {   // 同时通知云端，其他设备也会跟着切回
+        BACKEND = 'gas'; localStorage.setItem('APP_backend', 'gas');
+        localStorage.removeItem('APP_sb_state'); localStorage.removeItem('APP_raw_cache');
+        location.reload();
+    });
 }
 
 function toggleLoginSettings() {
@@ -5014,6 +5045,11 @@ async function syncToDrive(manual = false, forcePush = false) {
             } else {
                 showToast('已同步', 'success');
             }
+        } else if (text.includes('MIGRATED')) {
+            await incCheckServerMode();
+            alert('云端数据已迁移到增量同步。\n\n页面将重新加载并自动切换，你尚未同步的修改会保留在本机，登录后会自动合并上传。');
+            location.reload();
+            return;
         } else {
             throw new Error('GAS 返回：' + text);
         }
@@ -5031,6 +5067,7 @@ async function loadFromDrive() {
     if (!cloudConfigured()) {
         alert('请先在登录界面的连接设置里配置 GAS。'); return;
     }
+    if (!offlineMode) await incCheckServerMode();   // 先确认云端当前用哪种同步方式（多设备保持一致）
 
     // 缓存过期天数：见文件顶部 STALE_CACHE_DAYS（必须 ≤ DELETED_LOG_RETENTION_DAYS，否则会出现"删除记录已失效但缓存还没刷新"的空窗期，导致已删数据复活）
     const localRawCache = localStorage.getItem('APP_raw_cache');
