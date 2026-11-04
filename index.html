@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title id="app-title">记一笔 v3.10.0</title>
+    <title id="app-title">记一笔 v3.10.2</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
@@ -310,28 +310,41 @@ body {
     pointer-events: none;
     transition: opacity 0.25s;
     box-shadow: 0 2px 10px rgba(0,0,0,0.18);
-    white-space: nowrap;
+    /* 长文字：自动换行、完整显示（以前是 nowrap，超出屏幕的部分会被截掉） */
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.35;
+    width: max-content;
+    max-width: min(calc(100vw - 24px), 520px);
+    max-height: 40vh;
+    overflow-y: auto;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 7px;
 }
+#app-toast > i, #app-toast > .spinner-border { flex: 0 0 auto; margin-top: 2px; }
+#app-toast.tap-dismiss { cursor: pointer; }
 #app-toast.show { opacity: 1; pointer-events: auto; }
 
 /* ───────── 底部同步状态条：持久状态（未同步 / 同步中 / 同步失败）放在底部导航栏上方，
    顶部 toast 只做 3 秒内消失的瞬时提示，两者互不遮挡、互不覆盖 ───────── */
 #sync-bar {
     position: fixed;
-    left: 50%;
+    left: 10px;
     bottom: 16px;
-    transform: translate(-50%, 12px);
-    width: min(calc(100vw - 24px), 460px);
+    transform: translateY(12px);
+    width: fit-content;
+    max-width: min(calc(100vw - 20px), 460px);
     z-index: 1015;                 /* 高于底部导航(1000)和悬浮按钮(1010)，低于弹窗(1055)和抽屉(1061) */
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 8px 7px 12px;
-    border-radius: 14px;
-    font-size: 0.84rem;
+    padding: 6px 8px 6px 12px;
+    min-height: 40px;
+    border-radius: 20px;
+    font-size: 0.82rem;
     line-height: 1.25;
     border: 1px solid var(--sb-border, var(--bs-border-color));
     background: var(--sb-bg, var(--bs-body-bg));
@@ -341,9 +354,11 @@ body {
     pointer-events: none;
     transition: opacity .2s ease, transform .2s ease;
 }
-#sync-bar.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#sync-bar.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
 #sync-bar .sb-icon { flex: 0 0 auto; display: inline-flex; align-items: center; }
-#sync-bar .sb-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#sync-bar .sb-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; }
+#sync-bar.expanded .sb-text { -webkit-line-clamp: unset; display: block; max-height: 40vh; overflow-y: auto; }
+#sync-bar.expanded { max-width: min(calc(100vw - 20px), 460px); }
 #sync-bar .sb-btn, #sync-bar .sb-close {
     flex: 0 0 auto; border: 1px solid currentColor; background: transparent; color: inherit;
     border-radius: 12px; font-size: 0.78rem; font-weight: 600; padding: 3px 12px; cursor: pointer; white-space: nowrap;
@@ -354,16 +369,23 @@ body {
 #sync-bar[data-state="error"]   { --sb-bg: var(--bs-danger-bg-subtle);  --sb-fg: var(--bs-danger-text-emphasis);  --sb-border: var(--bs-danger-border-subtle); }
 #sync-bar[data-state="ok"]      { --sb-bg: var(--bs-success-bg-subtle); --sb-fg: var(--bs-success-text-emphasis); --sb-border: var(--bs-success-border-subtle); }
 #sync-bar[data-state="offline"] { --sb-bg: var(--bs-secondary-bg-subtle); --sb-fg: var(--bs-secondary-text-emphasis); --sb-border: var(--bs-secondary-border-subtle); }
-#sync-bar.on-login { z-index: 5001; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }   /* 登录界面（迁移进度）也要能看到 */
+/* 登录界面（迁移进度）也要能看到：居中、盖在登录层之上 */
+#sync-bar.on-login { z-index: 5001; left: 50%; transform: translate(-50%, 12px); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+#sync-bar.on-login.show { transform: translate(-50%, 0); }
 @media (min-width: 769px) {
+    /* 电脑：页面底部居中 */
+    #sync-bar:not(.on-login) { left: 50%; transform: translate(-50%, 12px); }
+    #sync-bar:not(.on-login).show { transform: translate(-50%, 0); }
     body.sync-bar-on { padding-bottom: 64px; }
 }
 @media (max-width: 768px) {
-    /* 手机：贴在底部导航栏正上方 */
-    #sync-bar:not(.on-login) { bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 8px); }
+    /* 手机：和交易页的悬浮按钮（52px，右侧 18px）在同一水平线上并排，悬浮按钮位置不动 */
+    #sync-bar:not(.on-login) {
+        bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 14px + 6px);
+        max-width: calc(100vw - 10px - 18px - 52px - 10px);
+    }
+    #sync-bar:not(.on-login).expanded { max-width: calc(100vw - 20px); }
     body.sync-bar-on { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 56px); }
-    /* 悬浮按钮（+ / 多选）让位：整体上移到状态条上方 */
-    body.sync-bar-on #mobile-fab-group { bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 14px + 54px); }
 }
 @media (prefers-reduced-motion: reduce) { #sync-bar { transition: none; } }
 
@@ -1597,7 +1619,7 @@ select.compact-form-control { height: 2.1rem; }
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.10.0</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.10.2</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -2279,7 +2301,7 @@ select.compact-form-control { height: 2.1rem; }
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v3.10.0</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v3.10.2</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -2831,6 +2853,7 @@ let _toastTimer = null;          // toast 自动消失计时器
 let _barBusy = null;             // 底部同步状态条：{msg, at}，来自 showToast(..., 'syncing')
 let _barError = null;            // {msg, retry}，来自 showToast(..., 'error', 0)
 let _barOkUntil = 0;             // “已同步”短暂显示到什么时候
+let _barOkText = '';             // 状态条在“已同步”状态下显示的文字（如“已同步 3 条新数据”）
 let _barKey = '';                // 上次渲染的状态指纹（没变化就不动 DOM）
 let driveIsSyncing = false;      // 防并发
 let offlineMode = localStorage.getItem('APP_offline_mode') === 'true'; // 离线模式
@@ -2860,7 +2883,7 @@ let currentUserFilterValue = localStorage.getItem('APP_trans_user_filter') || 'a
 
 // 清理已移除功能（AI / 设备昵称）遗留在本机的配置
 ['ai_api_url', 'ai_api_key', 'ai_model', 'APP_device_name'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
-const APP_VERSION = '3.10.0';
+const APP_VERSION = '3.10.2';
 
 // ── 数据同步相关日期常量 ──────────────────────────────────────
 // 约束：STALE_CACHE_DAYS（本地缓存过期天数）必须 ≤ DELETED_LOG_RETENTION_DAYS（删除日志保留天数），
@@ -3753,6 +3776,16 @@ function toggleOfflineMode() {
 }
 
 
+/** 收起登录页的连接设置面板（回到登录界面时调用，保证每次都是关闭状态） */
+function closeLoginSettings() {
+    const panel = $('login-settings-panel');
+    if (panel) panel.style.display = 'none';
+    const gear = $('login-settings-gear');
+    if (gear) gear.className = 'bi bi-gear';
+    const more = $('login-more-options');
+    if (more) more.open = false;
+}
+
 function switchUser() {
     if (hasUnsavedChanges) {
         if (!confirm('有未保存的更改，确定切换用户？')) return;
@@ -3764,6 +3797,7 @@ function switchUser() {
 
     $('app-wrapper').classList.add('d-none');
     $('login-overlay').classList.remove('d-none');
+    closeLoginSettings();
 
     if (inMemoryLoadedData) {
         window._suppressAutoLogin = true;  // 手动切换时不自动选用户
@@ -9483,28 +9517,44 @@ function showToast(msg, type = 'success', duration = 3000) {
         syncBarRender();
         return;
     }
-    const wasActive = _barBusy !== null || _barError !== null || hasUnsavedChanges;
     _barBusy = null;
+    // 弹窗打开时底部状态条会被盖住，这时才需要在顶部再提示一次
+    const barVisible = !(document.querySelector && document.querySelector('.modal.show'));
     let toastMs = duration;
-    if (type === 'error' && duration === 0) {       // 需要用户处理的错误：状态条持久显示，顶部只闪一下
+    let showTop = true;
+    // 需要用户处理的错误（duration 为 0，或“同步失败 / 同步已中止 / 加载失败”这类同步错误，不管传入多长时间）：底部持久显示（带重试 / 关闭），顶部不再重复
+    if (type === 'error' && (duration === 0 || /^(同步失败|同步已中止|加载失败)/.test(msg))) {
         _barError = { msg, retry: /同步/.test(msg) };
         toastMs = 5000;
+        if (barVisible) showTop = false;
     } else if (type === 'success') {
         _barError = null;
-        if (wasActive && /同步|迁移/.test(msg)) {   // 同步完成：状态条短暂变绿再消失
-            _barOkUntil = Date.now() + 1800;
-            setTimeout(syncBarRender, 1900);
+        if (/已同步|同步成功|迁移完成/.test(msg)) { // 同步完成：底部状态条变绿并显示这句话，顶部不再重复
+            const long = msg.length > 16;
+            const ms = long ? Math.min(Math.max(duration, 3000), 8000) : 1800;
+            _barOkText = msg;
+            _barOkUntil = Date.now() + ms;
+            setTimeout(syncBarRender, ms + 100);
+            if (barVisible) showTop = false;
         }
     }
     if (type === 'progress') toastMs = 0;           // 弹窗内的操作进度（如附件上传）：留在顶部、不自动消失，直到下一条提示替换它
-    else if (!(toastMs > 0)) toastMs = 5000;
+    else {
+        if (!(toastMs > 0)) toastMs = 5000;
+        // 文字越长，停留越久（按约 90ms/字估算，至少保持传入的时长，最长 12 秒）
+        const len = String(msg).replace(/<[^>]*>/g, '').length;
+        toastMs = Math.max(toastMs, Math.min(1200 + len * 90, 12000));
+    }
 
     const el = $('app-toast');
-    if (el) {
+    if (el && showTop) {
         clearTimeout(_toastTimer);
         applyToastStyle(el, type);
-        el.innerHTML = `${toastIcons[type] || ''} ${msg}`;
+        el.innerHTML = `${toastIcons[type] || ''} <span>${msg}</span>`;
         el.classList.add('show');
+        const long = String(msg).replace(/<[^>]*>/g, '').length > 30;
+        el.classList.toggle('tap-dismiss', long);
+        el.onclick = long ? () => el.classList.remove('show') : null;   // 长提示：点一下即可关闭
         if (toastMs > 0) _toastTimer = setTimeout(() => el.classList.remove('show'), toastMs);
     }
     syncBarRender();
@@ -9524,7 +9574,7 @@ function syncBarDerive() {
         if (driveIsSyncing) s = { ...s, state: 'syncing', text: '正在同步…' };
         else if (typeof navigator !== 'undefined' && navigator.onLine === false) s = { ...s, state: 'offline', text: '无网络，修改已保存在本机，联网后同步' };
         else s = { ...s, state: 'unsaved', text: '有修改尚未同步', btn: '立即同步' };
-    } else if (Date.now() < _barOkUntil) s = { ...s, state: 'ok', text: '已同步' };
+    } else if (Date.now() < _barOkUntil) s = { ...s, state: 'ok', text: _barOkText || '已同步' };
     return s;
 }
 
@@ -9544,6 +9594,7 @@ function syncBarRender() {
     cls.style.display = s.close ? '' : 'none';
     bar.classList.toggle('on-login', s.loginVisible);
     bar.classList.toggle('show', s.state !== 'idle');
+    if (s.state === 'idle') bar.classList.remove('expanded');
     document.body.classList.toggle('sync-bar-on', s.state !== 'idle' && !s.loginVisible);
 }
 
@@ -9556,6 +9607,7 @@ function syncBarDismiss() { _barError = null; syncBarRender(); }
     const bar = document.getElementById('sync-bar');
     if (!bar) return;
     bar.querySelector('.sb-btn').addEventListener('click', syncBarAction);
+    bar.querySelector('.sb-text').addEventListener('click', () => bar.classList.toggle('expanded'));   // 文字很长时，点一下展开看全文
     bar.querySelector('.sb-close').addEventListener('click', syncBarDismiss);
     window.addEventListener('online', syncBarRender);
     window.addEventListener('offline', syncBarRender);
