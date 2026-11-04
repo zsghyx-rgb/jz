@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title id="app-title">记一笔 v3.9.2</title>
+    <title id="app-title">记一笔 v3.10.0</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
@@ -298,7 +298,7 @@ body {
 /* 统一通知 toast */
 #app-toast {
     position: fixed;
-    top: 6px;
+    top: calc(6px + env(safe-area-inset-top, 0px));
     left: 50%;
     transform: translateX(-50%);
     padding: 8px 18px;
@@ -316,30 +316,56 @@ body {
     gap: 7px;
 }
 #app-toast.show { opacity: 1; pointer-events: auto; }
-@keyframes toastBreath {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.15; }
-}
-#app-toast.minimized {
-    left: 14px !important;
-    transform: translateX(0) !important;
-    top: 10px !important;
-    padding: 6px 8px !important;
-    border-radius: 50% !important;
-    font-size: 0.75rem !important;
-    cursor: pointer !important;
-    max-width: 32px;
-    min-width: 32px;
-    width: 32px;
-    height: 32px;
-    display: flex !important;
+
+/* ───────── 底部同步状态条：持久状态（未同步 / 同步中 / 同步失败）放在底部导航栏上方，
+   顶部 toast 只做 3 秒内消失的瞬时提示，两者互不遮挡、互不覆盖 ───────── */
+#sync-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translate(-50%, 12px);
+    width: min(calc(100vw - 24px), 460px);
+    z-index: 1015;                 /* 高于底部导航(1000)和悬浮按钮(1010)，低于弹窗(1055)和抽屉(1061) */
+    display: flex;
     align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    overflow: hidden;
-    transition: left 0.4s ease, transform 0.4s ease, padding 0.3s ease, max-width 0.3s ease;
-    animation: toastBreath 4s ease-in-out infinite;
+    gap: 8px;
+    padding: 7px 8px 7px 12px;
+    border-radius: 14px;
+    font-size: 0.84rem;
+    line-height: 1.25;
+    border: 1px solid var(--sb-border, var(--bs-border-color));
+    background: var(--sb-bg, var(--bs-body-bg));
+    color: var(--sb-fg, var(--bs-body-color));
+    box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
 }
+#sync-bar.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#sync-bar .sb-icon { flex: 0 0 auto; display: inline-flex; align-items: center; }
+#sync-bar .sb-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#sync-bar .sb-btn, #sync-bar .sb-close {
+    flex: 0 0 auto; border: 1px solid currentColor; background: transparent; color: inherit;
+    border-radius: 12px; font-size: 0.78rem; font-weight: 600; padding: 3px 12px; cursor: pointer; white-space: nowrap;
+}
+#sync-bar .sb-close { border: none; padding: 3px 8px; font-size: 1rem; line-height: 1; font-weight: 400; opacity: .7; }
+#sync-bar[data-state="unsaved"] { --sb-bg: var(--bs-warning-bg-subtle); --sb-fg: var(--bs-warning-text-emphasis); --sb-border: var(--bs-warning-border-subtle); }
+#sync-bar[data-state="syncing"] { --sb-bg: var(--bs-primary-bg-subtle); --sb-fg: var(--bs-primary-text-emphasis); --sb-border: var(--bs-primary-border-subtle); }
+#sync-bar[data-state="error"]   { --sb-bg: var(--bs-danger-bg-subtle);  --sb-fg: var(--bs-danger-text-emphasis);  --sb-border: var(--bs-danger-border-subtle); }
+#sync-bar[data-state="ok"]      { --sb-bg: var(--bs-success-bg-subtle); --sb-fg: var(--bs-success-text-emphasis); --sb-border: var(--bs-success-border-subtle); }
+#sync-bar[data-state="offline"] { --sb-bg: var(--bs-secondary-bg-subtle); --sb-fg: var(--bs-secondary-text-emphasis); --sb-border: var(--bs-secondary-border-subtle); }
+#sync-bar.on-login { z-index: 5001; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }   /* 登录界面（迁移进度）也要能看到 */
+@media (min-width: 769px) {
+    body.sync-bar-on { padding-bottom: 64px; }
+}
+@media (max-width: 768px) {
+    /* 手机：贴在底部导航栏正上方 */
+    #sync-bar:not(.on-login) { bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 8px); }
+    body.sync-bar-on { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 56px); }
+    /* 悬浮按钮（+ / 多选）让位：整体上移到状态条上方 */
+    body.sync-bar-on #mobile-fab-group { bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 14px + 54px); }
+}
+@media (prefers-reduced-motion: reduce) { #sync-bar { transition: none; } }
 
 .amount-hidden { filter: blur(8px); user-select: none; }
 
@@ -426,6 +452,11 @@ select.compact-form-control { height: 2.1rem; }
     margin-top: 3px;
     flex-shrink: 0;
 }
+/* 已选了支出 → 收入行不可选（反之亦然）：去掉勾选框并淡化，避免误以为能混选 */
+#mobile-transaction-cards.batch-lock-expense .mobile-transaction-card[data-ttype="income"],
+#mobile-transaction-cards.batch-lock-income .mobile-transaction-card[data-ttype="expense"] { opacity: 0.45; }
+#mobile-transaction-cards.batch-lock-expense .mobile-transaction-card[data-ttype="income"] .batch-edit-checkbox,
+#mobile-transaction-cards.batch-lock-income .mobile-transaction-card[data-ttype="expense"] .batch-edit-checkbox { display: none; }
 .mobile-transaction-card .card-line-1 {
     display: flex;
     justify-content: space-between;
@@ -1428,6 +1459,12 @@ select.compact-form-control { height: 2.1rem; }
 
 <!-- 统一通知 toast -->
 <div id="app-toast"></div>
+<div id="sync-bar" role="status" aria-live="polite">
+    <span class="sb-icon"></span>
+    <span class="sb-text"></span>
+    <button type="button" class="sb-btn" style="display:none;"></button>
+    <button type="button" class="sb-close" aria-label="关闭" style="display:none;">×</button>
+</div>
 
 <div id="login-overlay">
     <div class="card shadow p-3 p-md-4" style="width: 480px; max-width: 95%;">
@@ -1502,17 +1539,8 @@ select.compact-form-control { height: 2.1rem; }
 
             <!-- 更多选项（低频，默认折叠） -->
             <details class="mt-2" id="login-more-options">
-                <summary class="small text-muted" style="cursor:pointer;"><i class="bi bi-three-dots"></i> 更多选项（设备昵称 / 操作反馈 / 初始化）</summary>
+                <summary class="small text-muted" style="cursor:pointer;"><i class="bi bi-three-dots"></i> 更多选项（操作反馈 / 初始化）</summary>
                 <div class="pt-2">
-            <div class="mb-3">
-                <label class="form-label small mb-1">设备昵称 <span class="text-muted">(可选，用于访问日志)</span></label>
-                <div class="input-group input-group-sm">
-                    <input type="text" class="form-control" id="device-name-input" placeholder="如：家里iPad、公司电脑" maxlength="30" autocomplete="off">
-                    <button class="btn btn-outline-secondary" type="button" onclick="saveDeviceName()"><i class="bi bi-check-lg"></i></button>
-                </div>
-                <div class="form-text" id="device-name-hint"></div>
-            </div>
-
             <!-- 同步通知 -->
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="small text-muted">操作反馈</span>
@@ -1569,7 +1597,7 @@ select.compact-form-control { height: 2.1rem; }
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.9.2</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 3.10.0</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -2105,11 +2133,6 @@ select.compact-form-control { height: 2.1rem; }
                         <span>清理孤立附件</span>
                         <i class="bi bi-chevron-right"></i>
                     </div>
-                    <div class="settings-menu-item" onclick="showSettingsSubpage('deleted-log')">
-                        <i class="bi bi-clock-history"></i>
-                        <span>删除日志</span>
-                        <i class="bi bi-chevron-right"></i>
-                    </div>
                     <div class="settings-menu-item" onclick="showSettingsSubpage('password')">
                         <i class="bi bi-key"></i>
                         <span>数据密码</span>
@@ -2154,17 +2177,6 @@ select.compact-form-control { height: 2.1rem; }
                             <i class="bi bi-arrow-clockwise"></i> 读取备份列表
                         </button>
                         <div id="backup-list-container" class="mt-1" style="max-height:220px;overflow-y:auto;font-size:0.85rem;"></div>
-                    </div>
-                </div>
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header bg-transparent fw-bold">
-                        <i class="bi bi-journal-text"></i> 访问日志
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-2">查看云端 access_log.txt 的访问记录，支持分页浏览。</p>
-                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="loadAccessLog()">
-                            <i class="bi bi-journal-text"></i> 打开访问日志
-                        </button>
                     </div>
                 </div>
                 <div class="card shadow-sm mb-3">
@@ -2233,26 +2245,6 @@ select.compact-form-control { height: 2.1rem; }
                 </div>
             </div>
 
-            <!-- Sub-page: 删除日志 -->
-            <div id="settings-sub-deleted-log" class="settings-subpage">
-                <div class="subpage-header">
-                    <i class="bi bi-arrow-left" onclick="showSettingsSubpage('advanced')"></i>
-                    <span>删除日志</span>
-                </div>
-                <div class="card shadow-sm">
-                    <div class="card-header bg-transparent fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-clock-history"></i> 删除日志</span>
-                        <button class="btn btn-outline-danger btn-sm py-0" onclick="clearAllDeletedLog()">
-                            <i class="bi bi-trash3"></i> 清除全部
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-2">记录已删除的交易/账户ID，用于多设备同步时防止已删数据被重新合并回来。条目会在 <span id="deleted-log-retention-days-text">30</span> 天后自动失效。</p>
-                        <div id="deleted-log-list"></div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Sub-page: 数据密码 -->
             <div id="settings-sub-password" class="settings-subpage">
                 <div class="subpage-header">
@@ -2287,7 +2279,7 @@ select.compact-form-control { height: 2.1rem; }
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v3.9.2</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v3.10.0</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -2836,7 +2828,10 @@ let _lastTransPrefs = {};        // 上次新增交易的选项（仅本次会�
 let _configUpdatedAt = Date.now(); // 配置块（分类/图标/预算/汇率）最后修改时间，用于同步合并冲突
 function markConfigUpdated() { _configUpdatedAt = Date.now(); }
 let _toastTimer = null;          // toast 自动消失计时器
-let _toastMinimizeTimer = null;  // toast 缩小为角标的计时器
+let _barBusy = null;             // 底部同步状态条：{msg, at}，来自 showToast(..., 'syncing')
+let _barError = null;            // {msg, retry}，来自 showToast(..., 'error', 0)
+let _barOkUntil = 0;             // “已同步”短暂显示到什么时候
+let _barKey = '';                // 上次渲染的状态指纹（没变化就不动 DOM）
 let driveIsSyncing = false;      // 防并发
 let offlineMode = localStorage.getItem('APP_offline_mode') === 'true'; // 离线模式
 
@@ -2863,9 +2858,9 @@ let currentAssetAggregation = 'month';
 let transactionDisplayMode = localStorage.getItem('APP_trans_display_mode') || 'all';
 let currentUserFilterValue = localStorage.getItem('APP_trans_user_filter') || 'all';
 
-// 清理已移除的 AI 功能遗留在本机的密钥/配置
-['ai_api_url', 'ai_api_key', 'ai_model'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
-const APP_VERSION = '3.9.2';
+// 清理已移除功能（AI / 设备昵称）遗留在本机的配置
+['ai_api_url', 'ai_api_key', 'ai_model', 'APP_device_name'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+const APP_VERSION = '3.10.0';
 
 // ── 数据同步相关日期常量 ──────────────────────────────────────
 // 约束：STALE_CACHE_DAYS（本地缓存过期天数）必须 ≤ DELETED_LOG_RETENTION_DAYS（删除日志保留天数），
@@ -3506,8 +3501,6 @@ function gasRequestUrl(options = {}) {
     if (options.fileId)   params.push(`fileId=${encodeURIComponent(options.fileId)}`);
     if (options.since !== undefined) params.push(`since=${encodeURIComponent(options.since)}`);
     if (options.limit !== undefined) params.push(`limit=${encodeURIComponent(options.limit)}`);
-    const device = localStorage.getItem('APP_device_name') || guessDeviceName();
-    params.push(`device=${encodeURIComponent(device)}`);
     return params.length ? `${GAS_URL}?${params.join('&')}` : GAS_URL;
 }
 
@@ -3623,7 +3616,6 @@ function initLoginSettingsUI() {
     initSyncModeUI();
     initGasUrlUI();
     initGasTokenUI();
-    initDeviceNameUI();
     renderVerboseToastBtn();
 }
 
@@ -3707,60 +3699,6 @@ function saveGasToken() {
     if (GAS_URL && !offlineMode) loadFromDrive();   // URL 和 Token 都齐了：立刻按云端当前的同步方式加载
 }
 
-function guessDeviceName() {
-    const ua = navigator.userAgent;
-
-    if (/iPhone/.test(ua)) {
-        const v = ua.match(/OS (\d+)_/);
-        return v ? `iPhone (iOS ${v[1]})` : 'iPhone';
-    }
-    if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
-        const v = ua.match(/OS (\d+)_/);
-        return v ? `iPad (iOS ${v[1]})` : 'iPad';
-    }
-    const android = ua.match(/Android[^;]*;\s*([^)]+)\)/);
-    if (android) {
-        const model = android[1].replace(/\s*Build\/\S+/, '').trim();
-        return model || 'Android 设备';
-    }
-    if (/Macintosh/.test(ua)) return 'Mac';
-    const win = ua.match(/Windows NT ([\d.]+)/);
-    if (win) {
-        const m = { '10.0': 'Windows 10/11', '6.3': 'Windows 8.1', '6.1': 'Windows 7' };
-        return m[win[1]] || 'Windows PC';
-    }
-    if (/Linux/.test(ua)) return 'Linux';
-    return '未知设备';
-}
-
-function initDeviceNameUI() {
-    const saved = localStorage.getItem('APP_device_name') || '';
-    const input = $('device-name-input');
-    const hint = $('device-name-hint');
-    if (!input) return;
-    if (saved) {
-        input.value = saved;
-        if (hint) hint.textContent = `当前：${saved}`;
-    } else {
-        const guessed = guessDeviceName();
-        input.value = guessed;
-        if (hint) hint.textContent = '自动识别，可修改后保存';
-    }
-}
-
-function saveDeviceName() {
-    let val = ($('device-name-input').value || '').trim();
-    // 用户清空时，回退到自动生成的昵称
-    if (!val) val = guessDeviceName();
-    localStorage.setItem('APP_device_name', val);
-    $('device-name-input').value = val;
-    const hint = $('device-name-hint');
-    if (hint) hint.textContent = `已保存：${val}`;
-    if (verboseToast) showToast(`设备昵称已保存：${val}`, 'success', 2000);
-}
-
-
-
 function initOfflineModeUI() {
     const btn = $('offline-mode-btn');
     const offlineBar = $('offline-file-bar');
@@ -3843,16 +3781,8 @@ function _applyAppVersion() {
     if (settingsEl) settingsEl.textContent = `v${APP_VERSION}`;
 }
 
-// 把 DELETED_LOG_RETENTION_DAYS / STALE_CACHE_DAYS 同步到界面文案里，
-// 避免常量改了但说明文字忘了改，导致文案和实际行为不一致
-function _applySyncConstants() {
-    const retentionEl = $('deleted-log-retention-days-text');
-    if (retentionEl) retentionEl.textContent = DELETED_LOG_RETENTION_DAYS;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     _applyAppVersion();
-    _applySyncConstants();
     initOfflineModeUI();
 
     // 在线模式且已配置云端（GAS）则自动加载
@@ -4724,6 +4654,7 @@ const toastIcons = {
     warning: '<i class="bi bi-exclamation-triangle-fill"></i>',
     error:   '<i class="bi bi-x-circle-fill"></i>',
     syncing: '<span class="spinner-border spinner-border-sm"></span>',
+    progress:'<span class="spinner-border spinner-border-sm"></span>',
     info:    '<i class="bi bi-info-circle-fill"></i>',
 };
 
@@ -4733,6 +4664,7 @@ function applyToastStyle(el, type) {
         warning: { bg: '#fff3cd', color: '#664d03', border: '#ffda6a' },
         error:   { bg: '#f8d7da', color: '#58151c', border: '#f1aeb5' },
         syncing: { bg: '#cfe2ff', color: '#084298', border: '#9ec5fe' },
+        progress:{ bg: '#cfe2ff', color: '#084298', border: '#9ec5fe' },
         info:    { bg: '#cff4fc', color: '#055160', border: '#9eeaf9' },
     };
     const c = colors[type] || colors.success;
@@ -4751,48 +4683,11 @@ function triggerAutoSave() {
             localStorage.setItem(`APP_local_draft_time_${currentUserName}`, Date.now().toString());
         } catch(e) { /* localStorage 容量不足时静默失败 */ }
     }
-    showUnsavedToast();
-}
-
-function showUnsavedToast() {
-    if (historyMode) return; // 历史模式下不显示未保存提示
-    const el = $('app-toast');
-    if (!el) return;
-    clearTimeout(_toastTimer);
-    clearTimeout(_toastMinimizeTimer);
-    el.classList.remove('minimized');
-    el.onclick = null;
-    applyToastStyle(el, 'warning');
-    el.innerHTML = `${toastIcons.warning} 有未保存的修改 <button onclick="syncToDrive(true)" style="margin-left:8px;padding:1px 10px;font-size:0.78rem;border-radius:12px;border:1px solid #664d03;background:transparent;color:#664d03;cursor:pointer;font-weight:600;">立即同步</button>`;
-    el.classList.add('show');
-    _toastMinimizeTimer = setTimeout(() => minimizeUnsavedToast(), 4000);
-}
-
-function minimizeUnsavedToast() {
-    const el = $('app-toast');
-    if (!el || !hasUnsavedChanges) return;
-    clearTimeout(_toastMinimizeTimer);
-    applyToastStyle(el, 'warning');
-    el.classList.remove('minimized');
-    void el.offsetWidth;
-    el.classList.add('minimized');
-    el.innerHTML = `<span style="color:#e67e00;font-size:1.1rem;line-height:1;">●</span>`;
-    el.onclick = (e) => {
-        e.stopPropagation();
-        clearTimeout(_toastMinimizeTimer);
-        el.classList.remove('minimized');
-        el.onclick = null;
-        applyToastStyle(el, 'warning');
-        el.innerHTML = `${toastIcons.warning} 有未保存的修改 <button onclick="syncToDrive(true)" style="margin-left:8px;padding:1px 10px;font-size:0.78rem;border-radius:12px;border:1px solid #664d03;background:transparent;color:#664d03;cursor:pointer;font-weight:600;">立即同步</button>`;
-        _toastMinimizeTimer = setTimeout(() => minimizeUnsavedToast(), 5000);
-    };
+    syncBarRender();
 }
 
 function clearUnsavedFlag() {
     hasUnsavedChanges = false;
-    clearTimeout(_toastMinimizeTimer);
-    const el = $('app-toast');
-    if (el) { el.classList.remove('minimized'); el.onclick = null; }
     try { localStorage.setItem('APP_last_sync_time', String(Date.now())); } catch(_) {}
     
     // 清空 localStorage 中所有用户的本地草稿
@@ -7676,7 +7571,16 @@ function cancelBatchEditMode() {
     $('batch-edit-bar').classList.remove('d-flex');
     $('batch-edit-toggle-btn').classList.remove('btn-primary');
     $('batch-edit-toggle-btn').classList.add('btn-outline-secondary');
+    updateBatchEditBar();   // 同时解除类型锁定
     renderAllTransactions();
+}
+
+/** 根据已选类型，锁定另一种类型的行（隐藏它们的勾选框）；没有任何选中时全部解锁 */
+function updateBatchLock() {
+    const box = $('mobile-transaction-cards');
+    if (!box) return;
+    box.classList.toggle('batch-lock-expense', batchEditMode && batchSelectedType === 'expense');
+    box.classList.toggle('batch-lock-income', batchEditMode && batchSelectedType === 'income');
 }
 
 function updateBatchEditBar() {
@@ -7684,6 +7588,7 @@ function updateBatchEditBar() {
     if (countEl) countEl.textContent = `已选择 ${batchSelectedIds.size} 笔`;
     const applyBtn = $('batch-edit-apply-btn');
     if (applyBtn) applyBtn.disabled = batchSelectedIds.size === 0;
+    updateBatchLock();
 }
 
 function toggleBatchSelect(id) {
@@ -7694,7 +7599,9 @@ function toggleBatchSelect(id) {
     if (!wasSelected) {
         // 限制多选只能选同一种类型：支出/收入分开选择，转账不可选（转账不会走到这里，见渲染时的过滤）
         if (batchSelectedType && t.type !== batchSelectedType) {
-            showToast('批量编辑只能选择同一类型的交易，请先取消已选的' + (batchSelectedType === 'expense' ? '支出' : '收入') + '记录', 'warning');
+            const cb0 = document.querySelector(`.mobile-transaction-card[data-id="${id}"] .batch-edit-checkbox`);
+            if (cb0) cb0.checked = false;   // 浏览器已经把它勾上了，要还原
+            showToast('已选择' + (batchSelectedType === 'expense' ? '支出' : '收入') + '，只能继续选择同类型的交易；如需选另一类，请先取消已选的', 'warning');
             return;
         }
         batchSelectedIds.add(id);
@@ -7825,6 +7732,7 @@ function renderAllTransactions() {
 
             const card = document.createElement('div');
             card.className = 'mobile-transaction-card';
+            card.dataset.ttype = t.type;
             card.dataset.id = t.id;
 
             const accDisplayName = getAccountDisplayName(acc);
@@ -8123,7 +8031,7 @@ async function handleAttachmentSelected(input) {
         let base64Data, fileName, mimeType, fileSizeKB;
 
         if (isPdf) {
-            showToast('上传中…', 'syncing', 0);
+            showToast('上传中…', 'progress', 0);
             base64Data = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = e => resolve(e.target.result.split(',')[1]);
@@ -8134,9 +8042,9 @@ async function handleAttachmentSelected(input) {
             mimeType = 'application/pdf';
             fileSizeKB = Math.round(file.size / 1024);
         } else {
-            showToast('压缩中…', 'syncing', 0);
+            showToast('压缩中…', 'progress', 0);
             const compressedFile = await compressImage(file, 500);
-            showToast('上传中…', 'syncing', 0);
+            showToast('上传中…', 'progress', 0);
             base64Data = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = e => resolve(e.target.result.split(',')[1]);
@@ -9413,63 +9321,8 @@ function showSettingsSubpage(name) {
     if (name === 'password') initPasswordHint();
     if (name === 'planned') renderPlannedTransactions();
     if (name === 'orphan-attachments') { $('orphan-attachments-result').innerHTML = ''; }
-    if (name === 'deleted-log') renderDeletedLogUI();
 }
 
-// ── 删除日志管理 ─────────────────────────────────────────────
-function renderDeletedLogUI() {
-    const container = $('deleted-log-list');
-    if (!container) return;
-    const log = (inMemoryLoadedData && inMemoryLoadedData.deletedLog) || [];
-    if (log.length === 0) {
-        container.innerHTML = '<p class="text-muted small mb-0 text-center py-3">暂无删除记录</p>';
-        return;
-    }
-    const sorted = [...log].sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
-    const now = Date.now();
-    const cutoff = now - DELETED_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-    let html = `<div class="small text-muted mb-2">共 ${sorted.length} 条记录</div>`;
-    sorted.forEach((entry, idx) => {
-        const isExpired = (entry.deletedAt || 0) < cutoff;
-        const dateStr = entry.deletedAt ? new Date(entry.deletedAt).toLocaleString('zh-CN', { hour12: false }) : '未知时间';
-        const typeLabel = entry.type === 'transaction' ? '交易' : (entry.type === 'account' ? '账户' : (entry.type || '未知'));
-        html += `<div class="d-flex align-items-center gap-2 py-1 border-bottom" data-log-idx="${idx}">
-            <span class="badge ${isExpired ? 'bg-secondary' : 'bg-warning text-dark'}" style="font-size:0.65rem;">${isExpired ? '已失效' : '生效中'}</span>
-            <span class="small flex-grow-1 text-truncate">${typeLabel} · ID: ${_escHtml(String(entry.id))}</span>
-            <span class="small text-muted flex-shrink-0">${dateStr}</span>
-            <button class="btn btn-sm btn-outline-danger py-0 px-2 flex-shrink-0" onclick="deleteSingleLogEntry(${idx})">
-                <i class="bi bi-trash"></i>
-            </button>
-        </div>`;
-    });
-    container.innerHTML = html;
-    // 把排序后的顺序缓存起来，供单条删除时定位
-    container._sortedLog = sorted;
-}
-
-function deleteSingleLogEntry(idx) {
-    const container = $('deleted-log-list');
-    if (!container || !container._sortedLog) return;
-    const entry = container._sortedLog[idx];
-    if (!entry) return;
-    if (!inMemoryLoadedData.deletedLog) return;
-    inMemoryLoadedData.deletedLog = inMemoryLoadedData.deletedLog.filter(e =>
-        !(String(e.id) === String(entry.id) && e.deletedAt === entry.deletedAt && e.type === entry.type)
-    );
-    saveUserData(); triggerAutoSave();
-    renderDeletedLogUI();
-    showToast('已删除该条记录', 'success');
-}
-
-function clearAllDeletedLog() {
-    const log = (inMemoryLoadedData && inMemoryLoadedData.deletedLog) || [];
-    if (log.length === 0) { showToast('删除日志已经是空的', 'warning'); return; }
-    if (!confirm(`确定清除全部 ${log.length} 条删除记录？\n\n注意：清除后，如果其他设备还带着已删除的旧数据未同步，这些数据可能会在下次同步时被重新合并回来。`)) return;
-    inMemoryLoadedData.deletedLog = [];
-    saveUserData(); triggerAutoSave();
-    renderDeletedLogUI();
-    showToast('已清除全部删除日志', 'success');
-}
 // ── 清理孤立附件 ────────────────────────────────────────────
 async function scanOrphanAttachments(btn) {
     if (!GAS_URL) { showToast('请先配置 GAS URL', 'warning'); return; }
@@ -9619,32 +9472,95 @@ async function deleteAllOrphans(btn) {
 
 /**
  * 显示统一 toast 通知
- * type: 'success' | 'warning' | 'error' | 'syncing'
+ * type: 'success' | 'warning' | 'error' | 'info' | 'syncing'（同步进度，显示在底部状态条）| 'progress'（弹窗内操作进度，顶部常驻）
  * duration: ms，0 = 不自动消失
  */
 function showToast(msg, type = 'success', duration = 3000) {
-    const el = $('app-toast');
-    if (!el) return;
-    clearTimeout(_toastTimer);
-    if (type === 'syncing') {
-        clearTimeout(_toastMinimizeTimer);
-        el.classList.remove('minimized');
-        el.onclick = null;
+    // ── 持久状态交给底部状态条，顶部 toast 只做瞬时提示 ──
+    if (type === 'syncing') {                       // “同步中… / 正在上传…”：进度类提示 → 状态条
+        _barBusy = { msg, at: Date.now() };
+        _barError = null;
+        syncBarRender();
+        return;
     }
-    applyToastStyle(el, type);
-    el.innerHTML = `${toastIcons[type] || ''} ${msg}`;
-    el.classList.add('show');
+    const wasActive = _barBusy !== null || _barError !== null || hasUnsavedChanges;
+    _barBusy = null;
+    let toastMs = duration;
+    if (type === 'error' && duration === 0) {       // 需要用户处理的错误：状态条持久显示，顶部只闪一下
+        _barError = { msg, retry: /同步/.test(msg) };
+        toastMs = 5000;
+    } else if (type === 'success') {
+        _barError = null;
+        if (wasActive && /同步|迁移/.test(msg)) {   // 同步完成：状态条短暂变绿再消失
+            _barOkUntil = Date.now() + 1800;
+            setTimeout(syncBarRender, 1900);
+        }
+    }
+    if (type === 'progress') toastMs = 0;           // 弹窗内的操作进度（如附件上传）：留在顶部、不自动消失，直到下一条提示替换它
+    else if (!(toastMs > 0)) toastMs = 5000;
 
-    if (duration > 0) {
-        _toastTimer = setTimeout(() => {
-            if (hasUnsavedChanges) {
-                showUnsavedToast();
-            } else {
-                el.classList.remove('show');
-            }
-        }, duration);
+    const el = $('app-toast');
+    if (el) {
+        clearTimeout(_toastTimer);
+        applyToastStyle(el, type);
+        el.innerHTML = `${toastIcons[type] || ''} ${msg}`;
+        el.classList.add('show');
+        if (toastMs > 0) _toastTimer = setTimeout(() => el.classList.remove('show'), toastMs);
     }
+    syncBarRender();
 }
+
+/* ───────── 底部同步状态条（未同步 / 同步中 / 同步失败 / 无网络） ─────────
+ * 状态由全局变量“推导”出来（而不是各处手动开关），所以不会出现状态残留或互相覆盖：
+ *   同步中 > 失败 > 无网络/未同步 > 刚同步完成（短暂）> 隐藏
+ */
+function syncBarDerive() {
+    const loginVisible = !!$('login-overlay') && !$('login-overlay').classList.contains('d-none');
+    if (_barBusy && Date.now() - _barBusy.at > 90000) _barBusy = null;   // 保险：90 秒还没结束就当作已结束
+    let s = { state: 'idle', text: '', btn: '', close: false, loginVisible };
+    if (_barBusy) s = { ...s, state: 'syncing', text: _barBusy.msg };
+    else if (_barError) s = { ...s, state: 'error', text: _barError.msg, btn: _barError.retry ? '重试' : '', close: true };
+    else if (currentUser && !historyMode && !offlineMode && hasUnsavedChanges) {
+        if (driveIsSyncing) s = { ...s, state: 'syncing', text: '正在同步…' };
+        else if (typeof navigator !== 'undefined' && navigator.onLine === false) s = { ...s, state: 'offline', text: '无网络，修改已保存在本机，联网后同步' };
+        else s = { ...s, state: 'unsaved', text: '有修改尚未同步', btn: '立即同步' };
+    } else if (Date.now() < _barOkUntil) s = { ...s, state: 'ok', text: '已同步' };
+    return s;
+}
+
+function syncBarRender() {
+    const bar = $('sync-bar');
+    if (!bar) return;
+    const s = syncBarDerive();
+    const key = [s.state, s.text, s.btn, s.close, s.loginVisible].join('|');
+    if (key === _barKey) return;
+    _barKey = key;
+    const icons = { unsaved: toastIcons.warning, syncing: toastIcons.syncing, error: toastIcons.error, ok: toastIcons.success, offline: '<i class="bi bi-wifi-off"></i>' };
+    bar.dataset.state = s.state;
+    bar.querySelector('.sb-icon').innerHTML = icons[s.state] || '';
+    bar.querySelector('.sb-text').textContent = s.text;
+    const btn = bar.querySelector('.sb-btn'), cls = bar.querySelector('.sb-close');
+    btn.textContent = s.btn; btn.style.display = s.btn ? '' : 'none';
+    cls.style.display = s.close ? '' : 'none';
+    bar.classList.toggle('on-login', s.loginVisible);
+    bar.classList.toggle('show', s.state !== 'idle');
+    document.body.classList.toggle('sync-bar-on', s.state !== 'idle' && !s.loginVisible);
+}
+
+function syncBarAction() {            // “立即同步” / “重试”
+    if (_barError) { _barError = null; syncBarRender(); }
+    syncToDrive(true);
+}
+function syncBarDismiss() { _barError = null; syncBarRender(); }
+(function initSyncBar() {
+    const bar = document.getElementById('sync-bar');
+    if (!bar) return;
+    bar.querySelector('.sb-btn').addEventListener('click', syncBarAction);
+    bar.querySelector('.sb-close').addEventListener('click', syncBarDismiss);
+    window.addEventListener('online', syncBarRender);
+    window.addEventListener('offline', syncBarRender);
+    setInterval(syncBarRender, 800);   // 兜底：hasUnsavedChanges / driveIsSyncing 等变量被各处直接修改时，也能及时反映
+})();
 
 
 function toggleAmountVisibility() {
@@ -11131,141 +11047,6 @@ function _renderInsightTab(tab) {
 
 
 
-const LOG_PAGE_SIZE = 50;
-let _logAllLines = [];
-let _logCurrentPage = 1;
-
-function openLogDrawer() {
-    const backdrop = $('log-drawer-backdrop');
-    const drawer   = $('log-drawer');
-    backdrop.style.opacity      = '1';
-    backdrop.style.pointerEvents = 'auto';
-    drawer.style.transform      = 'translateY(0)';
-    document.body.style.overflow = 'hidden';
-}
-
-function closeLogDrawer() {
-    const backdrop = $('log-drawer-backdrop');
-    const drawer   = $('log-drawer');
-    backdrop.style.opacity      = '0';
-    backdrop.style.pointerEvents = 'none';
-    drawer.style.transform      = 'translateY(100%)';
-    document.body.style.overflow = '';
-}
-
-async function loadAccessLog() {
-    openLogDrawer();
-    const container = $('log-list-container');
-    const pager     = $('log-pagination');
-    container.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-hourglass-split"></i> 读取中…</div>';
-    pager.style.display = 'none';
-    if (!GAS_URL) {
-        container.innerHTML = '<span class="text-danger small">未配置 GAS URL，无法读取日志。</span>';
-        return;
-    }
-    try {
-        const resp = await fetch(gasRequestUrl({ file: 'access_log.txt' }));
-        const raw  = (await resp.text()).trim();
-        if (!raw) {
-            container.innerHTML = '<div class="text-muted small text-center py-4">日志文件为空。</div>';
-            return;
-        }
-        _logAllLines    = raw.split('\n').filter(l => l.trim()).reverse();
-        _logCurrentPage = 1;
-        renderLogPage();
-    } catch (e) {
-        container.innerHTML = `<span class="text-danger small">读取失败：${e.message}</span>`;
-    }
-}
-
-async function refreshLogDrawer() {
-    // 重新拉取，保持抽屉开着
-    const container = $('log-list-container');
-    const pager     = $('log-pagination');
-    container.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-hourglass-split"></i> 读取中…</div>';
-    pager.style.display = 'none';
-    if (!GAS_URL) {
-        container.innerHTML = '<span class="text-danger small">未配置 GAS URL，无法读取日志。</span>';
-        return;
-    }
-    try {
-        const resp = await fetch(gasRequestUrl({ file: 'access_log.txt' }));
-        const raw  = (await resp.text()).trim();
-        if (!raw) {
-            container.innerHTML = '<div class="text-muted small text-center py-4">日志文件为空。</div>';
-            return;
-        }
-        _logAllLines    = raw.split('\n').filter(l => l.trim()).reverse();
-        _logCurrentPage = 1;
-        renderLogPage();
-    } catch (e) {
-        container.innerHTML = `<span class="text-danger small">读取失败：${e.message}</span>`;
-    }
-}
-
-function renderLogPage() {
-    const container = $('log-list-container');
-    const pager     = $('log-pagination');
-    const total     = _logAllLines.length;
-    if (total === 0) {
-        container.innerHTML = '<div class="text-muted small text-center py-4">没有日志记录。</div>';
-        pager.style.display = 'none';
-        return;
-    }
-    const totalPages = Math.ceil(total / LOG_PAGE_SIZE);
-    if (_logCurrentPage < 1) _logCurrentPage = 1;
-    if (_logCurrentPage > totalPages) _logCurrentPage = totalPages;
-    const start = (_logCurrentPage - 1) * LOG_PAGE_SIZE;
-    const slice = _logAllLines.slice(start, Math.min(start + LOG_PAGE_SIZE, total));
-
-    let html = `<div style="overflow-x:auto;"><table class="table table-sm table-hover mb-0" style="font-size:0.8rem;min-width:420px;">
-        <thead><tr>
-            <th style="white-space:nowrap;width:148px;">时间</th>
-            <th style="white-space:nowrap;width:110px;">设备</th>
-            <th>操作</th>
-        </tr></thead><tbody>`;
-    slice.forEach(line => {
-        const parts  = line.split(' | ');
-        const time   = parts[0] || '';
-        const device = parts[1] || '';
-        const action = parts.slice(2).join(' | ') || '';
-        html += `<tr>
-            <td class="text-muted" style="white-space:nowrap;">${_escHtml(time)}</td>
-            <td style="white-space:nowrap;">${_escHtml(device)}</td>
-            <td style="word-break:break-all;">${_escHtml(action)}</td>
-        </tr>`;
-    });
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-    // 滚回顶部
-    container.scrollTop = 0;
-
-    if (totalPages <= 1) {
-        pager.style.display = 'none';
-    } else {
-        pager.style.display = 'flex';
-        pager.innerHTML = `
-            <span class="text-muted small">共 ${total} 条 · 第 ${_logCurrentPage} / ${totalPages} 页</span>
-            <div class="d-flex gap-1">
-                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="logGoPage(1)" ${_logCurrentPage===1?'disabled':''}>
-                    <i class="bi bi-chevron-double-left"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="logGoPage(${_logCurrentPage-1})" ${_logCurrentPage===1?'disabled':''}>
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="logGoPage(${_logCurrentPage+1})" ${_logCurrentPage===totalPages?'disabled':''}>
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="logGoPage(${totalPages})" ${_logCurrentPage===totalPages?'disabled':''}>
-                    <i class="bi bi-chevron-double-right"></i>
-                </button>
-            </div>`;
-    }
-}
-
-function logGoPage(p) { _logCurrentPage = p; renderLogPage(); }
-
-
 // ── 自定义账户下拉组件 ──
 const ACC_SELECT_IDS = ['edit-trans-account', 'edit-transfer-from', 'edit-transfer-to'];
 
@@ -11451,25 +11232,6 @@ window.addEventListener('online', () => {
     <div style="flex-shrink:0;padding:10px 16px 12px;text-align:center;border-top:1px solid var(--bs-border-color);">
         <button class="btn btn-sm btn-outline-secondary w-100" onclick="closeInsightDrawer()">关闭</button>
     </div>
-</div>
-
-<div id="log-drawer-backdrop" onclick="closeLogDrawer()" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1060;opacity:0;pointer-events:none;transition:opacity .25s;"></div>
-<div id="log-drawer" style="position:fixed;left:0;right:0;bottom:0;z-index:1061;background:var(--bs-body-bg);border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.2);max-height:85vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);">
-    <!-- 抽屉顶栏 -->
-    <div style="display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid var(--bs-border-color);flex-shrink:0;">
-        <i class="bi bi-journal-text" style="font-size:1.1rem;color:var(--bs-primary);"></i>
-        <span style="font-weight:600;font-size:1rem;flex:1;">访问日志</span>
-        <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="refreshLogDrawer()" title="重新读取">
-            <i class="bi bi-arrow-clockwise"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="closeLogDrawer()">
-            <i class="bi bi-x-lg"></i>
-        </button>
-    </div>
-    <!-- 日志内容（可滚动） -->
-    <div id="log-list-container" style="overflow-y:auto;flex:1;padding:12px 16px;font-size:0.82rem;"></div>
-    <!-- 分页栏（固定在底部） -->
-    <div id="log-pagination" style="display:none;flex-shrink:0;padding:10px 16px;border-top:1px solid var(--bs-border-color);background:var(--bs-body-bg);border-radius:0 0 0 0;align-items:center;justify-content:space-between;gap:8px;"></div>
 </div>
 
 </body></html>
