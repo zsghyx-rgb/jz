@@ -1,7 +1,7 @@
-﻿<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
+<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title id="app-title">记一笔 v3.10.2</title>
+    <title id="app-title">记一笔 v3.11.0</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="记一笔">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <script>
         (() => {
@@ -1439,6 +1439,28 @@ select.compact-form-control { height: 2.1rem; }
 
 /* Settings menu */
 .settings-menu-list { padding: 0; }
+.settings-section-title {
+  font-size: 0.75rem; font-weight: 700; color: var(--bs-secondary-color);
+  letter-spacing: .04em; margin: 18px 0 6px; padding-left: 2px;
+}
+.settings-user-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; margin-bottom: 4px;
+  border: 1px solid var(--bs-border-color); border-radius: 14px;
+  background: var(--bs-tertiary-bg); cursor: pointer;
+  transition: background .15s;
+}
+.settings-user-card:active { background: var(--bs-secondary-bg); }
+.settings-user-avatar {
+  width: 42px; height: 42px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--bs-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.05rem; text-transform: uppercase;
+}
+.settings-user-main { flex: 1 1 auto; min-width: 0; }
+.settings-user-name { font-weight: 700; font-size: 1rem; line-height: 1.25; }
+.settings-user-sub { font-size: 0.78rem; color: var(--bs-secondary-color); margin-top: 2px; }
+.settings-user-card > .bi-chevron-right { color: var(--bs-secondary-color); font-size: .85rem; }
 .settings-menu-item {
   display: flex; align-items: center; padding: 14px 16px;
   border-bottom: 1px solid var(--bs-border-color);
@@ -1475,6 +1497,97 @@ select.compact-form-control { height: 2.1rem; }
 .cat-sort-item .btn-outline-danger { border-color: transparent; }
 .cat-sort-item .cat-text { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ───────── 应用内底部弹层（替代原生 confirm / alert） ───────── */
+#ui-sheet-backdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .45);
+    z-index: 1080; opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+#ui-sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+
+#ui-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1081;
+    background: var(--bs-body-bg); color: var(--bs-body-color);
+    border-radius: 18px 18px 0 0;
+    border-top: 1px solid var(--bs-border-color);
+    box-shadow: 0 -6px 28px rgba(0, 0, 0, .28);
+    transform: translateY(110%);
+    transition: transform .26s cubic-bezier(.4, 0, .2, 1);
+    padding: 8px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    max-height: 85vh; display: flex; flex-direction: column;
+}
+#ui-sheet.show { transform: translateY(0); }
+.ui-sheet-handle {
+    width: 38px; height: 4px; border-radius: 2px;
+    background: var(--bs-secondary-bg); margin: 2px auto 12px; flex: 0 0 auto;
+}
+.ui-sheet-title { font-weight: 700; font-size: 1rem; margin-bottom: 6px; flex: 0 0 auto; }
+.ui-sheet-title:empty { display: none; }
+.ui-sheet-body {
+    font-size: .9rem; line-height: 1.55; color: var(--bs-secondary-color);
+    white-space: pre-wrap; word-break: break-word; overflow-y: auto; flex: 1 1 auto;
+    -webkit-overflow-scrolling: touch;
+}
+.ui-sheet-actions { display: flex; gap: 10px; margin-top: 18px; flex: 0 0 auto; }
+.ui-sheet-actions .btn { flex: 1; padding: .55rem .75rem; border-radius: 12px; font-weight: 600; font-size: .92rem; }
+@media (min-width: 769px) {
+    #ui-sheet {
+        left: 50%; right: auto; bottom: 24px; width: 420px;
+        border-radius: 16px; border: 1px solid var(--bs-border-color);
+        transform: translate(-50%, 130%);
+    }
+    #ui-sheet.show { transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) { #ui-sheet, #ui-sheet-backdrop { transition: none; } }
+
+/* ───────── 撤销提示条（删除类操作） ───────── */
+#undo-bar {
+    position: fixed; left: 10px; right: 10px; margin: 0 auto;
+    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+    max-width: 460px; z-index: 1090;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 8px 8px 14px; border-radius: 14px;
+    background: #2b2f33; color: #fff;
+    font-size: .84rem; line-height: 1.3;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .3);
+    opacity: 0; transform: translateY(14px); pointer-events: none;
+    transition: opacity .2s, transform .2s;
+}
+#undo-bar.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+#undo-bar .ub-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#undo-bar .ub-btn {
+    flex: 0 0 auto; border: none; background: transparent;
+    color: #7cb6ff; font-weight: 700; font-size: .84rem;
+    padding: 6px 10px; border-radius: 10px; cursor: pointer;
+}
+#undo-bar .ub-btn:active { background: rgba(255, 255, 255, .12); }
+@media (min-width: 769px) { #undo-bar { bottom: 68px; } }
+@media (prefers-reduced-motion: reduce) { #undo-bar { transition: none; } }
+
+/* ───────── 新版本提示 ───────── */
+#update-banner {
+    position: fixed; left: 10px; right: 10px; margin: 0 auto;
+    top: calc(52px + env(safe-area-inset-top, 0px));
+    max-width: 460px; z-index: 9998;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px 8px 14px; border-radius: 14px;
+    background: var(--bs-primary); color: #fff;
+    font-size: .84rem; line-height: 1.3;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .28);
+    opacity: 0; transform: translateY(-10px); pointer-events: none;
+    transition: opacity .22s, transform .22s;
+}
+#update-banner.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+#update-banner .ub2-text { flex: 1 1 auto; min-width: 0; }
+#update-banner button {
+    flex: 0 0 auto; border: 1px solid rgba(255, 255, 255, .7);
+    background: rgba(255, 255, 255, .16); color: #fff;
+    font-size: .8rem; font-weight: 700; padding: 4px 12px;
+    border-radius: 10px; cursor: pointer;
+}
+#update-banner .ub2-close { border: none; background: transparent; padding: 4px 8px; font-size: 1rem; font-weight: 400; opacity: .8; }
+
 </style>
 </head>
 <body>
@@ -1487,6 +1600,29 @@ select.compact-form-control { height: 2.1rem; }
     <button type="button" class="sb-btn" style="display:none;"></button>
     <button type="button" class="sb-close" aria-label="关闭" style="display:none;">×</button>
 </div>
+
+<!-- 应用内底部弹层：替代原生 confirm / alert -->
+<div id="ui-sheet-backdrop" onclick="_uiSheetCancel()"></div>
+<div id="ui-sheet" role="dialog" aria-modal="true" aria-labelledby="ui-sheet-title">
+    <div class="ui-sheet-handle"></div>
+    <div class="ui-sheet-title" id="ui-sheet-title"></div>
+    <div class="ui-sheet-body" id="ui-sheet-body"></div>
+    <div class="ui-sheet-actions" id="ui-sheet-actions"></div>
+</div>
+
+<!-- 删除类操作的“撤销”提示条 -->
+<div id="undo-bar" role="status" aria-live="polite">
+    <span class="ub-text"></span>
+    <button type="button" class="ub-btn" onclick="_undoRun()">撤销</button>
+</div>
+
+<!-- 新版本提示 -->
+<div id="update-banner" role="status" aria-live="polite">
+    <span class="ub2-text"><i class="bi bi-arrow-repeat"></i> 有新版本，点击刷新后生效</span>
+    <button type="button" onclick="applyAppUpdate()">刷新</button>
+    <button type="button" class="ub2-close" aria-label="稍后" onclick="dismissUpdateBanner()">×</button>
+</div>
+
 
 <div id="login-overlay">
     <div class="card shadow p-3 p-md-4" style="width: 480px; max-width: 95%;">
@@ -1984,15 +2120,21 @@ select.compact-form-control { height: 2.1rem; }
 
             <!-- Settings Menu -->
             <div id="settings-menu">
+                <!-- 当前用户（唯一入口：切换/退出只保留一处，避免设置页出现两套按钮） -->
+                <div class="settings-user-card" onclick="showSettingsSubpage('users')">
+                    <div class="settings-user-avatar" id="settings-user-avatar">U</div>
+                    <div class="settings-user-main">
+                        <div class="settings-user-name" id="settings-user-name">User</div>
+                        <div class="settings-user-sub" id="settings-user-sub">在线模式</div>
+                    </div>
+                    <i class="bi bi-chevron-right"></i>
+                </div>
+
+                <div class="settings-section-title">记账</div>
                 <div class="settings-menu-list">
                     <div class="settings-menu-item" onclick="showSettingsSubpage('planned')">
                         <i class="bi bi-calendar-check"></i>
                         <span>计划交易</span>
-                        <i class="bi bi-chevron-right"></i>
-                    </div>
-                    <div class="settings-menu-item" onclick="showSettingsSubpage('exchange-rate')">
-                        <i class="bi bi-currency-exchange"></i>
-                        <span>汇率设置</span>
                         <i class="bi bi-chevron-right"></i>
                     </div>
                     <div class="settings-menu-item" onclick="showSettingsSubpage('categories')">
@@ -2000,6 +2142,15 @@ select.compact-form-control { height: 2.1rem; }
                         <span>分类管理</span>
                         <i class="bi bi-chevron-right"></i>
                     </div>
+                    <div class="settings-menu-item" onclick="showSettingsSubpage('exchange-rate')">
+                        <i class="bi bi-currency-exchange"></i>
+                        <span>汇率设置</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="settings-section-title">数据</div>
+                <div class="settings-menu-list">
                     <div class="settings-menu-item" onclick="showSettingsSubpage('users')">
                         <i class="bi bi-people"></i>
                         <span>账户与用户</span>
@@ -2015,18 +2166,23 @@ select.compact-form-control { height: 2.1rem; }
                         <span>高级功能</span>
                         <i class="bi bi-chevron-right"></i>
                     </div>
+                </div>
+
+                <div class="settings-section-title">其他</div>
+                <div class="settings-menu-list">
                     <div class="settings-menu-item" onclick="showSettingsSubpage('about')">
                         <i class="bi bi-info-circle"></i>
                         <span>关于</span>
                         <i class="bi bi-chevron-right"></i>
                     </div>
                 </div>
+
                 <div class="settings-menu-footer">
                     <button class="btn btn-outline-secondary w-100 mb-2" onclick="switchUser()">
                         <i class="bi bi-arrow-left-right"></i> 切换用户
                     </button>
                     <button class="btn btn-outline-danger w-100" onclick="logout()">
-                        <i class="bi bi-box-arrow-left"></i> 退出登录(<span id="mobile-current-user"></span>)
+                        <i class="bi bi-box-arrow-left"></i> 退出登录（<span id="mobile-current-user"></span>）
                     </button>
                 </div>
             </div>
@@ -2105,15 +2261,7 @@ select.compact-form-control { height: 2.1rem; }
                     <i class="bi bi-arrow-left" onclick="showSettingsMenu()"></i>
                     <span>账户与用户</span>
                 </div>
-                <div class="mb-4">
-                    <button class="btn btn-outline-secondary w-100 mb-2" onclick="switchUser()">
-                        <i class="bi bi-arrow-left-right"></i> 切换用户
-                    </button>
-                    <button class="btn btn-outline-danger w-100" onclick="logout()">
-                        <i class="bi bi-box-arrow-left"></i> 退出登录(<span id="mobile-current-user"></span>)
-                    </button>
-                </div>
-                <div class="card shadow-sm">
+                <div class="card shadow-sm mb-3">
                     <div class="card-header bg-transparent fw-bold">
                         <i class="bi bi-people"></i> 用户管理
                     </div>
@@ -2127,7 +2275,7 @@ select.compact-form-control { height: 2.1rem; }
                         </form>
                     </div>
                 </div>
-                <div class="card shadow-sm mt-3">
+                <div class="card shadow-sm">
                     <div class="card-header bg-transparent fw-bold">
                         <i class="bi bi-eye-slash"></i> 隐藏账户管理
                     </div>
@@ -2136,6 +2284,9 @@ select.compact-form-control { height: 2.1rem; }
                         <div id="hidden-accounts-list"></div>
                     </div>
                 </div>
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i> 切换用户 / 退出登录请返回设置页底部操作。
+                </p>
             </div>
 
             <!-- Sub-page: 高级功能（二级菜单）-->
@@ -2186,7 +2337,13 @@ select.compact-form-control { height: 2.1rem; }
                             <button class="btn btn-warning" onclick="exportEncData()">
                                 <i class="bi bi-shield-lock"></i> 导出本地文件
                             </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="purgeCloudDeletedRows(this)">
+                                <i class="bi bi-eraser"></i> 清理云端表格中的已删除行
+                            </button>
                         </div>
+                        <p class="text-muted small mb-0 mt-2">
+                            删除交易后，云端表格会保留一行“已删除”标记（用于多设备同步）。这里可以把这些残留行真正清掉，减小表格体积。
+                        </p>
                     </div>
                 </div>
                 <div class="card shadow-sm mb-3">
@@ -2811,7 +2968,7 @@ select.compact-form-control { height: 2.1rem; }
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const DEFAULT_CATEGORIES = {
     expense: ['餐饮', '交通', '住房', '购物', '娱乐', '医疗'],
@@ -2883,7 +3040,7 @@ let currentUserFilterValue = localStorage.getItem('APP_trans_user_filter') || 'a
 
 // 清理已移除功能（AI / 设备昵称）遗留在本机的配置
 ['ai_api_url', 'ai_api_key', 'ai_model', 'APP_device_name'].forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
-const APP_VERSION = '3.10.2';
+const APP_VERSION = '3.11.0';
 
 // ── 数据同步相关日期常量 ──────────────────────────────────────
 // 约束：STALE_CACHE_DAYS（本地缓存过期天数）必须 ≤ DELETED_LOG_RETENTION_DAYS（删除日志保留天数），
@@ -3332,8 +3489,13 @@ async function incSyncCore(options = {}) {
     // 3) 熔断：一次要删除的云端记录异常多时，先确认
     const knownCount = Object.keys(state.synced).length;
     if (diff.tombstones.length > 20 && diff.tombstones.length > knownCount * 0.2) {
-        const ok = options.manual && typeof confirm === 'function' &&
-            confirm(`本次同步将删除云端 ${diff.tombstones.length} 条记录（占 ${Math.round(diff.tombstones.length / Math.max(1, knownCount) * 100)}%）。\n\n如果这不是你的操作，请点“取消”，本地和云端都不会被改动。`);
+        let ok = false;
+        if (options.manual) {
+            ok = await uiConfirm(
+                `本次同步将删除云端 ${diff.tombstones.length} 条记录（占 ${Math.round(diff.tombstones.length / Math.max(1, knownCount) * 100)}%）。\n\n如果这不是你的操作，请点“取消”，本地和云端都不会被改动。`,
+                { title: '检测到异常删除', okText: '继续推送', cancelText: '取消（安全）', danger: true }
+            );
+        }
         if (!ok) {
             summary.aborted = `检测到异常删除（${diff.tombstones.length} 条），已中止推送`;
             incSaveState(state);
@@ -3404,7 +3566,7 @@ function incRefreshAfterMerge(summary) {
 async function incSync(manual = false, forcePush = false) {
     if (!currentUser) return;
     if (historyMode) { if (manual) showToast('历史模式下不允许同步', 'warning'); return; }
-    if (!userPassword) { if (manual) alert('增量同步需要加密密码，请使用加密数据文件登录。'); return; }
+    if (!userPassword) { if (manual) uiAlert('增量同步需要加密密码，请使用加密数据文件登录。'); return; }
     if (driveIsSyncing) return;
     driveIsSyncing = true;
     showToast('同步中…', 'syncing', 0);
@@ -3447,6 +3609,9 @@ async function incBackgroundSync() {
         }
     } catch (e) {
         console.warn('[sb] 后台同步失败', e);
+        // 以前这里只写控制台，用户完全看不到同步失败；现在走底部状态条（带“重试”按钮）
+        const msg = (e && e.message) ? e.message : String(e);
+        showToast('同步失败：' + msg, 'error', 0);
     } finally {
         driveIsSyncing = false;
     }
@@ -3579,16 +3744,16 @@ async function incAlignMode() {
 }
 
 async function incMigrateNow() {
-    if (!GAS_URL) { alert('请先在上方填写并保存 GAS URL / Token'); return; }
-    if (!inMemoryLoadedData || !userPassword) { alert('请先用 GAS 整包方式加载并解密数据（输入密码后看到用户选择按钮），再点“迁移”。'); return; }
-    if (BACKEND !== 'gas' && !confirm('当前已在使用增量同步。再次迁移会把本机数据与云端合并（较新的修改为准）。\n\n继续？')) return;
-    if (!confirm('将把当前数据逐条加密上传到 Google 表格，并校验。\n原有 GAS 整包数据不会被改动或删除，可随时切回。\n\n继续？')) return;
+    if (!GAS_URL) { uiAlert('请先在上方填写并保存 GAS URL / Token'); return; }
+    if (!inMemoryLoadedData || !userPassword) { uiAlert('请先用 GAS 整包方式加载并解密数据（输入密码后看到用户选择按钮），再点“迁移”。'); return; }
+    if (BACKEND !== 'gas' && !(await uiConfirm('当前已在使用增量同步。再次迁移会把本机数据与云端合并（较新的修改为准）。\n\n继续？', { title: '再次迁移', okText: '继续' }))) return;
+    if (!(await uiConfirm('将把当前数据逐条加密上传到 Google 表格，并校验。\n原有 GAS 整包数据不会被改动或删除，可随时切回。\n\n继续？', { title: '迁移到 Google 表格', okText: '开始迁移' }))) return;
     const prev = BACKEND;
     BACKEND = 'sheet'; // 让传输层使用增量同步
     try {
         showToast('正在连接 GAS…', 'syncing', 0);
         const existing = await incPullRows(0);
-        if (existing.length && !confirm('云端表格里已经有数据。继续将与当前数据合并（以较新的修改为准）。\n\n继续？')) { BACKEND = prev; showToast('已取消迁移', 'info', 2000); return; }
+        if (existing.length && !(await uiConfirm('云端表格里已经有数据。继续将与当前数据合并（以较新的修改为准）。\n\n继续？', { title: '云端已有数据', okText: '合并继续' }))) { BACKEND = prev; showToast('已取消迁移', 'info', 2000); return; }
 
         showToast('正在上传…', 'syncing', 0);
         const s = await incSyncCore({ manual: true, freshState: true, force: true });
@@ -3611,20 +3776,55 @@ async function incMigrateNow() {
         let notified = true;
         try { await incSetServerMode('sheet'); } catch (_) { notified = false; }
         if (notified) showToast(`迁移完成：${local.size} 条记录已校验一致。其他设备下次打开会自动切换到增量同步`, 'success', 8000);
-        else alert(`数据已迁移（${local.size} 条已校验一致），但没能通知云端切换，所以其他设备目前不会自动切换，仍会继续写旧的 data.enc！\n\n请先在 Apps Script 里部署新版 Code.gs（部署 → 管理部署 → 编辑 → 新版本），然后回到这里再点一次“迁移”。`);
+        else uiAlert(`数据已迁移（${local.size} 条已校验一致），但没能通知云端切换，所以其他设备目前不会自动切换，仍会继续写旧的 data.enc！\n\n请先在 Apps Script 里部署新版 Code.gs（部署 → 管理部署 → 编辑 → 新版本），然后回到这里再点一次“迁移”。`);
     } catch (e) {
         BACKEND = prev;
         showToast('迁移失败：' + e.message, 'error', 0);
     }
 }
 
-function incUseGasMode() {
-    if (!confirm('切回 GAS 整包模式？\n注意：增量模式之后的修改不会自动回到整包文件，整包文件里是切换前的旧数据。')) return;
+async function incUseGasMode() {
+    const ok = await uiConfirm('切回 GAS 整包模式？\n\n注意：增量模式之后的修改不会自动回到整包文件，整包文件里是切换前的旧数据。', { title: '切回整包模式', okText: '切回并重新加载', danger: true });
+    if (!ok) return;
     incSetServerMode('gas').catch(() => {}).finally(() => {   // 同时通知云端，其他设备也会跟着切回
         BACKEND = 'gas'; localStorage.setItem('APP_backend', 'gas');
         localStorage.removeItem('APP_sb_state'); localStorage.removeItem('APP_raw_cache');
         location.reload();
     });
+}
+
+/**
+ * 清理云端表格里“已删除”标记的残留行。
+ * 增量同步采用软删除（tombstone）：删除后云端那一行会保留并标记 deleted，
+ * 这样其他设备才能知道自己该删掉哪条。代价是表格会一直变长。
+ * 这里向服务端请求物理清理（需要 Code.gs 支持 action=purgeDeleted）。
+ */
+async function purgeCloudDeletedRows(btn) {
+    if (!useRows()) { uiAlert('当前是整包同步模式，云端表格里没有逐条记录，无需清理。'); return; }
+    if (!GAS_URL) { showToast('请先在连接设置里配置 GAS URL', 'warning'); return; }
+    const ok = await uiConfirm('将从云端表格中物理删除所有带“已删除”标记的行。\n\n已经同步过删除操作的设备不受影响；尚未同步的设备下次打开会照常合并。继续？', { title: '清理云端已删除行', okText: '开始清理' });
+    if (!ok) return;
+
+    const oldHtml = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>清理中…'; }
+    showToast('正在清理云端已删除行…', 'syncing', 0);
+    try {
+        const r = await sheetCall({}, { action: 'purgeDeleted' });
+        if (r && (r.ok || r.removed !== undefined)) {
+            showToast(`已清理 ${r.removed || 0} 行已删除记录`, 'success', 3000);
+        } else {
+            showToast('服务端没有返回清理结果，可能还没升级 Code.gs', 'warning', 4000);
+        }
+    } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        if (/返回异常|error/i.test(msg)) {
+            showToast('服务端还不支持这个操作：需要先在 Apps Script 里加上 purgeDeleted（改完要重新部署新版本）', 'error', 0);
+        } else {
+            showToast('清理失败：' + msg, 'error', 0);
+        }
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = oldHtml; }
+    }
 }
 
 function toggleLoginSettings() {
@@ -3683,7 +3883,7 @@ function showGasUrlInput() {
 function saveGasUrl() {
     const val = $('gas-url-input').value.trim();
     if (!val || !val.startsWith('https://script.google.com')) {
-        alert('请输入有效的 GAS Web App URL（以 https://script.google.com 开头）');
+        uiAlert('请输入有效的 GAS Web App URL（以 https://script.google.com 开头）');
         return;
     }
     localStorage.setItem('APP_gas_url', val);
@@ -3714,7 +3914,7 @@ function showGasTokenInput() {
 
 function saveGasToken() {
     const val = $('gas-token-input').value.trim();
-    if (!val) { alert('请输入 Token'); return; }
+    if (!val) { uiAlert('请输入 Token'); return; }
     localStorage.setItem('APP_gas_token', val);
     GAS_TOKEN = val;
     initGasTokenUI();
@@ -3744,6 +3944,15 @@ function initOfflineModeUI() {
     // 更新应用内状态指示
     const statusEl = $('sync-mode-status');
     if (statusEl) statusEl.textContent = offlineMode ? '离线模式' : '在线模式';
+
+    // 离线模式且还没选文件：先不显示密码框，避免用户对着空密码框无从下手
+    if (offlineMode) {
+        const fi = $('data-import-file');
+        if (!fi || !fi.files || !fi.files.length) {
+            const ps = $('password-section');
+            if (ps) ps.style.display = 'none';
+        }
+    }
 }
 
 function toggleOfflineMode() {
@@ -3751,6 +3960,11 @@ function toggleOfflineMode() {
     localStorage.setItem('APP_offline_mode', offlineMode ? 'true' : 'false');
     initOfflineModeUI();
     if (!offlineMode && cloudConfigured()) {
+        // 回到在线模式：清掉之前选的本地文件，否则输密码时会优先去解那个旧文件
+        const fi = $('data-import-file');
+        if (fi) fi.value = '';
+        window._driveMode = false;
+        window._driveRawContent = null;
         loadFromDrive();
     } else if (offlineMode) {
         // 切换到离线模式：清除所有网络缓存，防止下次误用旧云端数据
@@ -3769,9 +3983,24 @@ function toggleOfflineMode() {
         userPassword = ''; dataUsers = [];
         accounts = []; transactions = []; plannedTransactions = [];
         userAccounts = []; userTransactions = []; userPlannedTransactions = [];
+
+        /* ★ 关键修复：上一次“云端加密缓存 / 增量首次加载”留下的待处理状态必须一起清掉。
+         * 以前这里没清，导致切到离线模式后选 .enc 文件、输密码时，
+         * decryptAndLoadData 仍然走“解密云端缓存”的分支，永远解不出本地文件里的内容
+         * ——表现就是“离线模式下打不开 .enc”。 */
+        window._driveMode = false;
+        window._driveRawContent = null;
+        window._incPendingInitial = false;
+
+        const fileInput = $('data-import-file');
+        if (fileInput) fileInput.value = '';
+        const pwdInput = $('login-password');
+        if (pwdInput) pwdInput.value = '';
+        $('password-error').classList.add('d-none');
+        $('user-buttons').innerHTML = '';
         $('user-section').style.display = 'none';
         $('password-section').style.display = 'none';
-        showToast('已切换离线模式，本地缓存已清除，请手动选择文件', 'warning', 4000);
+        showToast('已切换离线模式，本地缓存已清除，请选择本地数据文件（.enc）并输入密码', 'warning', 4000);
     }
 }
 
@@ -3786,9 +4015,11 @@ function closeLoginSettings() {
     if (more) more.open = false;
 }
 
-function switchUser() {
+async function switchUser() {
     if (hasUnsavedChanges) {
-        if (!confirm('有未保存的更改，确定切换用户？')) return;
+        const ok = await uiConfirm('有未保存的更改，仍要切换用户吗？\n\n（改动会先保存在本机草稿里，下次登录该用户时自动恢复）', { title: '切换用户', okText: '切换' });
+        if (!ok) return;
+        flushDraftNow();
     }
     currentUser = null;
     currentUserName = null;
@@ -3833,6 +4064,13 @@ function onFileSelected() {
     const file = $('data-import-file').files[0];
     if (!file) return;
 
+    /* 用户主动选了本地文件 → 一定以这个文件为准。
+     * 清掉“云端加密缓存 / 增量首次加载”的待处理标记，否则离线模式下
+     * 输入密码后会去解云端缓存而不是这个 .enc 文件（表现为“打不开 enc”）。 */
+    window._driveMode = false;
+    window._driveRawContent = null;
+    window._incPendingInitial = false;
+
     if (verboseToast) showToast(`已选择：${file.name}`, 'info', 2000);
     const usernameHint = $('login-username-hint');
     if (usernameHint) usernameHint.value = file.name;
@@ -3841,7 +4079,7 @@ function onFileSelected() {
     $('user-buttons').innerHTML = '';
 
     // JSON明文文件：直接尝试解析
-    if (file.name.endsWith('.json')) {
+    if (file.name.toLowerCase().endsWith('.json')) {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -3862,8 +4100,10 @@ function onFileSelected() {
         reader.readAsText(file);
     } else {
         // .enc 文件：需要密码
+        const pwdInput = $('login-password');
+        if (pwdInput) { pwdInput.value = ''; }
         $('password-section').style.display = 'block';
-        $('login-password').focus();
+        if (pwdInput) setTimeout(() => pwdInput.focus(), 50);
     }
 }
 
@@ -3872,10 +4112,31 @@ function onFileSelected() {
  */
 function decryptAndLoadData() {
     const password = $('login-password').value;
-    if (!password) { alert('请输入密码'); return; }
+    if (!password) { uiAlert('请输入密码'); return; }
 
-    // 增量同步首次加载：拉取 → 解密
-    if (window._incPendingInitial) { incInitialLoad(password); return; }
+    /* 来源优先级（这是“离线模式打不开 .enc”的修复点）：
+     *   ① 用户在登录页手动选中的本地文件 —— 永远最优先，离线模式下必然走这里；
+     *   ② 增量同步首次加载（需要联网拉取）；
+     *   ③ 云端缓存暂存的加密内容（在线模式自动加载时才有）。
+     * 旧代码把 ②③ 放在 ① 前面，且切换离线模式时没清这两个标记，
+     * 于是离线选文件输密码后仍然去解云端缓存 → 一直提示密码错误。 */
+    const pickedFile = $('data-import-file') && $('data-import-file').files[0];
+    if (pickedFile) {
+        window._driveMode = false;
+        window._driveRawContent = null;
+        window._incPendingInitial = false;
+    } else if (window._incPendingInitial) {
+        // 增量同步首次加载：拉取 → 解密
+        incInitialLoad(password);
+        return;
+    } else if (window._driveMode && window._driveRawContent) {
+        // 云端缓存暂存的加密内容（见下方分支）
+    } else {
+        // 没有文件也没有云端内容
+        $('password-section').style.display = 'block';
+        uiAlert('请先选择本地数据文件（.enc），或在连接设置里确认已连接云端。');
+        return;
+    }
 
     // 来源：Drive 暂存内容 or 本地文件
     if (window._driveMode && window._driveRawContent) {
@@ -3912,7 +4173,7 @@ function decryptAndLoadData() {
 
     // 本地文件来源（原有逻辑）
     const file = $('data-import-file').files[0];
-    if (!file) { alert('请先选择文件'); return; }
+    if (!file) { uiAlert('请先选择文件'); return; }
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -4014,17 +4275,17 @@ function onDataLoaded() {
 /**
  * 新建数据文件
  */
-function createNewDataFile() {
-    const usersInput = prompt('输入用户名（多个用英文逗号分隔）：', 'abc,def');
+async function createNewDataFile() {
+    const usersInput = await uiPrompt('输入用户名（多个用英文逗号分隔）：', { title: '新建数据文件', input: { value: 'abc,def', placeholder: 'abc,def' } });
     if (!usersInput) return;
 
     const users = usersInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
-    if (users.length === 0) { alert('至少需要一个用户'); return; }
+    if (users.length === 0) { uiAlert('至少需要一个用户'); return; }
 
-    const pwd = prompt('设置数据文件加密密码：');
+    const pwd = await uiPrompt('设置数据文件加密密码：', { title: '设置密码', input: { type: 'password', placeholder: '至少 8 位' } });
     if (!pwd) return;
-    const pwdConfirm = prompt('再次确认密码：');
-    if (pwd !== pwdConfirm) { alert('两次密码不一致，请重试'); return; }
+    const pwdConfirm = await uiPrompt('再次确认密码：', { title: '确认密码', input: { type: 'password' } });
+    if (pwd !== pwdConfirm) { uiAlert('两次密码不一致，请重试'); return; }
 
     const allUserData = {};
     users.forEach(u => {
@@ -4054,7 +4315,7 @@ function createNewDataFile() {
  * 用户登录
  */
 function loginWithUser(name) {
-    if (!inMemoryLoadedData) { alert('请先加载数据文件'); return; }
+    if (!inMemoryLoadedData) { uiAlert('请先加载数据文件'); return; }
 
     currentUser = { name: name };
     currentUserName = name;
@@ -4068,6 +4329,7 @@ function loginWithUser(name) {
     document.querySelector('.user-name-full').innerText = name;
     document.querySelector('.user-name-short').innerText = initial;
     $('mobile-current-user').innerText = name;
+    renderSettingsUserCard();
 
     loadAllData();
     filterUserData();
@@ -4231,19 +4493,20 @@ function checkArchivePrompt() {
     const promptKey = `APP_archive_prompt_${lastYear}`;
     if (localStorage.getItem(promptKey)) return;
     localStorage.setItem(promptKey, '1');
-    setTimeout(() => {
+    setTimeout(async () => {
         const cnt = transactions.filter(t => t.date.startsWith(String(lastYear)) && !t._isBaseline).length;
-        if (confirm(`📦 建议存档 ${lastYear} 年数据\n\n共 ${cnt} 条记录，存档后可显著减少每次同步的数据量。\n\n现在存档吗？（可在设置页随时操作）`)) {
+        const ok = await uiConfirm(`建议存档 ${lastYear} 年数据\n\n共 ${cnt} 条记录，存档后可显著减少每次同步的数据量。\n\n现在存档吗？（可在设置页随时操作）`, { title: '年度存档建议', okText: '现在存档' });
+        if (ok) {
             confirmArchive(lastYear);
         }
     }, 2500);
 }
 
 async function confirmArchive(year) {
-    if (useRows()) { alert('增量同步模式下数据按条同步，不再需要按年存档。\n（已有的历史存档仍可在历史模式中查看，需要保留 GAS 连接。）'); return; }
+    if (useRows()) { uiAlert('增量同步模式下数据按条同步，不再需要按年存档。\n（已有的历史存档仍可在历史模式中查看，需要保留 GAS 连接。）'); return; }
     const cnt = transactions.filter(t => t.date.startsWith(String(year)) && !t._isBaseline).length;
     if (cnt === 0) { showToast(`${year} 年没有可存档的数据`, 'warning'); return; }
-    if (!confirm(`确定存档 ${year} 年的数据？\n\n共 ${cnt} 条记录将移入只读存档。\n存档数据不可恢复，只读，不能修改。`)) return;
+    if (!(await uiConfirm(`确定存档 ${year} 年的数据？\n\n共 ${cnt} 条记录将移入只读存档。\n存档数据不可恢复，只读，不能修改。`, { title: `${year} 年数据存档`, okText: '确认存档', danger: true }))) return;
     await archiveYear(year);
 }
 
@@ -4537,8 +4800,12 @@ function exitHistoryMode() {
 /**
  * 登出
  */
-function logout() {
-    if (hasUnsavedChanges && !confirm('有未保存的更改，确定退出？')) return;
+async function logout() {
+    if (hasUnsavedChanges) {
+        const ok = await uiConfirm('有未保存的更改，确定退出吗？\n\n（改动会先保存在本机草稿里，下次登录时自动恢复）', { title: '退出登录', okText: '退出', danger: true });
+        if (!ok) return;
+    }
+    flushDraftNow();
     location.reload();
 }
 
@@ -4707,21 +4974,205 @@ function applyToastStyle(el, type) {
     el.style.border = `1px solid ${c.border}`;
 }
 
+/* ───────── 应用内底部弹层：替代原生 confirm / alert ─────────
+ * 原生弹窗在 PWA 里很生硬（样式不可控、会被浏览器当成“网站提示”），
+ * 这里统一换成应用内的底部弹层：
+ *   uiConfirm(msg, opts) → Promise<boolean>
+ *   uiAlert(msg, opts)   → Promise<void>（不需要等待结果的地方可以直接调用）
+ */
+let _uiSheetResolve = null;
+let _uiSheetInputEl = null;      // 非空表示当前是“输入型”弹层（uiPrompt）
+
+function _uiSheetOpen(opts) {
+    const o = Object.assign({
+        title: '', message: '', okText: '确定', cancelText: '取消',
+        okClass: 'btn-primary', cancel: true, danger: false,
+        input: null            // { placeholder, value, type, maxlength }
+    }, opts || {});
+    return new Promise(resolve => {
+        const backdrop = $('ui-sheet-backdrop');
+        const sheet = $('ui-sheet');
+        const actions = $('ui-sheet-actions');
+        // 极端情况（弹层节点缺失）：退回原生确认框，保证逻辑不中断
+        if (!sheet || !actions || !backdrop) {
+            resolve(o.input ? window.prompt(o.message || o.title) : window.confirm(o.message || o.title));
+            return;
+        }
+
+        // 同一时间只允许一个弹层：上一个按“取消”结束，避免 Promise 永久悬挂
+        if (_uiSheetResolve) { const prev = _uiSheetResolve; _uiSheetResolve = null; prev(o.input ? null : false); }
+        _uiSheetResolve = resolve;
+
+        $('ui-sheet-title').textContent = o.title || '';
+        const bodyEl = $('ui-sheet-body');
+        bodyEl.textContent = o.message || '';
+        actions.innerHTML = '';
+        _uiSheetInputEl = null;
+
+        if (o.input) {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'margin-top:12px;';
+            const inp = document.createElement('input');
+            inp.type = o.input.type || 'text';
+            inp.className = 'form-control';
+            inp.placeholder = o.input.placeholder || '';
+            inp.value = o.input.value || '';
+            inp.autocomplete = 'off';
+            inp.spellcheck = false;
+            if (o.input.maxlength) inp.maxLength = o.input.maxlength;
+            inp.style.cssText = 'font-size:1rem;padding:.6rem .8rem;border-radius:12px;';
+            inp.addEventListener('keydown', ev => {
+                if (ev.key === 'Enter') { ev.preventDefault(); _uiSheetClose(true); }
+            });
+            wrap.appendChild(inp);
+            bodyEl.appendChild(wrap);
+            _uiSheetInputEl = inp;
+        }
+
+        if (o.cancel) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn btn-outline-secondary';
+            b.textContent = o.cancelText;
+            b.onclick = () => _uiSheetClose(false);
+            actions.appendChild(b);
+        }
+        const ok = document.createElement('button');
+        ok.type = 'button';
+        ok.className = 'btn ' + (o.danger ? 'btn-danger' : o.okClass);
+        ok.textContent = o.okText;
+        ok.onclick = () => _uiSheetClose(true);
+        actions.appendChild(ok);
+
+        backdrop.classList.add('show');
+        sheet.classList.add('show');
+        document.body.classList.add('ui-sheet-on');
+        setTimeout(() => {
+            try {
+                if (_uiSheetInputEl) { _uiSheetInputEl.focus({ preventScroll: true }); _uiSheetInputEl.select(); }
+                else ok.focus({ preventScroll: true });
+            } catch (_) {}
+        }, 130);
+    });
+}
+
+function _uiSheetClose(result) {
+    const sheet = $('ui-sheet'), backdrop = $('ui-sheet-backdrop');
+    if (sheet) sheet.classList.remove('show');
+    if (backdrop) backdrop.classList.remove('show');
+    document.body.classList.remove('ui-sheet-on');
+    const r = _uiSheetResolve;
+    const inp = _uiSheetInputEl;
+    _uiSheetResolve = null;
+    _uiSheetInputEl = null;
+    if (r) r(inp ? (result ? inp.value : null) : !!result);
+}
+function _uiSheetCancel() { _uiSheetClose(false); }
+
+function uiConfirm(message, opts) {
+    return _uiSheetOpen(Object.assign({ message: message, okText: '确定', cancelText: '取消' }, opts || {}));
+}
+function uiAlert(message, opts) {
+    return _uiSheetOpen(Object.assign({ message: message, okText: '知道了', cancel: false }, opts || {}));
+}
+function uiPrompt(message, opts) {
+    const o = Object.assign({ message: message, okText: '确定', cancelText: '取消', input: {} }, opts || {});
+    return _uiSheetOpen(o);
+}
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _uiSheetResolve) { e.preventDefault(); _uiSheetClose(false); }
+});
+
+/* ───────── 删除类操作的“撤销”提示条 ─────────
+ * 删除不再弹确认框：直接删掉 + 底部给 6 秒“撤销”，比“确定要删除吗”更顺手，也更难误删后无法挽回。
+ */
+let _undoTimer = null;
+let _undoFn = null;
+
+function showUndo(msg, fn, ms = 6000) {
+    const bar = $('undo-bar');
+    if (!bar) { if (typeof fn === 'function') fn(); return; }
+    bar.querySelector('.ub-text').textContent = msg;
+    _undoFn = (typeof fn === 'function') ? fn : null;
+    bar.classList.add('show');
+    clearTimeout(_undoTimer);
+    _undoTimer = setTimeout(hideUndo, ms);
+}
+function hideUndo() {
+    const bar = $('undo-bar');
+    if (bar) bar.classList.remove('show');
+    clearTimeout(_undoTimer);
+    _undoTimer = null;
+    _undoFn = null;
+}
+function _undoRun() {
+    const fn = _undoFn;
+    hideUndo();
+    if (typeof fn === 'function') {
+        try { fn(); } catch (e) { console.warn('[undo] 撤销失败', e); }
+    }
+}
+
+/* ───────── 本地草稿：只存当前用户 + 合并写入 ─────────
+ * 旧实现每改一笔都把「整个数据文件」（所有用户 + 全部记录）序列化一遍写进 localStorage，
+ * 记录一多，每次编辑都要几十毫秒，列表长了会明显卡。
+ * 现在：
+ *   ① 只序列化当前用户的数据（其他用户的记录在这次会话里不会变）；
+ *   ② 700ms 内的连续改动合并成一次写入（防抖）；
+ *   ③ 页面隐藏 / 关闭前强制落盘，保证不丢改动。
+ */
+const DRAFT_DEBOUNCE_MS = 700;
+let _draftTimer = null;
+
+function _buildDraftPayload() {
+    const ud = (inMemoryLoadedData.allUserData || {})[currentUserName]
+        || { accounts: [], transactions: [], plannedTransactions: [] };
+    return {
+        __draftV: 2,                        // 2 = 精简草稿（只含当前用户）
+        users: dataUsers,
+        categories: categories,
+        exchangeRates: exchangeRates,
+        budgets: budgets,
+        categoryIcons: categoryIcons,
+        configUpdatedAt: _configUpdatedAt,
+        archivedYears: inMemoryLoadedData.archivedYears || [],
+        deletedLog: inMemoryLoadedData.deletedLog || [],
+        allUserData: { [currentUserName]: ud }
+    };
+}
+
+function flushDraftNow() {
+    if (_draftTimer) { clearTimeout(_draftTimer); _draftTimer = null; }
+    if (!hasUnsavedChanges) return;                       // 没有改动就不写，避免同步后又凭空生成“未同步草稿”
+    if (!currentUserName || historyMode || !inMemoryLoadedData) return;
+    try {
+        saveUserData();
+        localStorage.setItem(`APP_local_draft_${currentUserName}`, JSON.stringify(_buildDraftPayload()));
+        localStorage.setItem(`APP_local_draft_time_${currentUserName}`, Date.now().toString());
+    } catch (e) { /* 容量不足：静默失败，内存数据仍是完整的，同步时会以内存为准 */ }
+}
+
+function scheduleDraftSave() {
+    if (_draftTimer) clearTimeout(_draftTimer);
+    _draftTimer = setTimeout(flushDraftNow, DRAFT_DEBOUNCE_MS);
+}
+
 function triggerAutoSave() {
     if (historyMode) return; // 历史模式下不触发任何保存
     hasUnsavedChanges = true;
     if (currentUserName) {
-        try {
-            saveUserData();
-            localStorage.setItem(`APP_local_draft_${currentUserName}`, JSON.stringify(inMemoryLoadedData));
-            localStorage.setItem(`APP_local_draft_time_${currentUserName}`, Date.now().toString());
-        } catch(e) { /* localStorage 容量不足时静默失败 */ }
+        saveUserData();        // 内存立即生效（渲染、同步都读内存）
+        scheduleDraftSave();   // 落盘合并成一次
     }
     syncBarRender();
 }
 
+window.addEventListener('pagehide', flushDraftNow);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushDraftNow(); });
+
 function clearUnsavedFlag() {
     hasUnsavedChanges = false;
+    if (_draftTimer) { clearTimeout(_draftTimer); _draftTimer = null; }   // 取消尚未落盘的草稿写入
     try { localStorage.setItem('APP_last_sync_time', String(Date.now())); } catch(_) {}
     
     // 清空 localStorage 中所有用户的本地草稿
@@ -4886,7 +5337,7 @@ async function syncToDrive(manual = false, forcePush = false) {
     if (!useRows() && GAS_URL && !offlineMode) await incCheckServerMode();
     if (useRows()) return incSync(manual, forcePush);
     if (!GAS_URL) {
-        if (manual) alert('请先在登录界面填写并保存 GAS URL。');
+        if (manual) uiAlert('请先在登录界面填写并保存 GAS URL。');
         return;
     }
     if (driveIsSyncing) return;
@@ -4949,7 +5400,7 @@ async function syncToDrive(manual = false, forcePush = false) {
                                 `本地数据也未被修改，可以继续正常使用。\n\n` +
                                 `建议：请联系技术支持核实，或检查是否有历史存档/分片操作导致此现象。`;
                             console.error('[syncToDrive] 数据完整性熔断触发', stats);
-                            alert(msg);
+                            uiAlert(msg);
                             showToast('同步已中止：检测到数据异常减少', 'error', 0);
                             return;
                         }
@@ -5020,7 +5471,7 @@ async function syncToDrive(manual = false, forcePush = false) {
             }
         } else if (text.includes('MIGRATED')) {
             await incCheckServerMode();
-            alert('云端数据已迁移到增量同步。\n\n页面将重新加载并自动切换，你尚未同步的修改会保留在本机，登录后会自动合并上传。');
+            uiAlert('云端数据已迁移到增量同步。\n\n页面将重新加载并自动切换，你尚未同步的修改会保留在本机，登录后会自动合并上传。');
             location.reload();
             return;
         } else {
@@ -5038,7 +5489,7 @@ async function syncToDrive(manual = false, forcePush = false) {
  */
 async function loadFromDrive() {
     if (!cloudConfigured()) {
-        alert('请先在登录界面的连接设置里配置 GAS。'); return;
+        uiAlert('请先在登录界面的连接设置里配置 GAS。'); return;
     }
     if (!offlineMode) await incCheckServerMode();   // 先确认云端当前用哪种同步方式（多设备保持一致）
 
@@ -5265,7 +5716,10 @@ async function backgroundSyncAfterLogin() {
             }
         }
     } catch(e) {
-        // 后台同步失败，静默忽略
+        // 后台同步失败：以前完全静默，用户以为已经同步了；现在给一条可见的失败提示（带重试）
+        console.warn('[bg-sync] 后台同步失败', e);
+        const msg = (e && e.message) ? e.message : String(e);
+        showToast('后台同步失败：' + msg, 'error', 0);
     }
 }
 
@@ -5273,25 +5727,25 @@ async function backgroundSyncAfterLogin() {
 /**
  * 导出加密文件 (.enc)
  */
-function exportEncData() {
+async function exportEncData() {
     saveUserData();
 
     let exportPassword = userPassword;
 
     if (!exportPassword) {
-        exportPassword = prompt('设置导出密码（下次导入时需要输入此密码）：');
+        exportPassword = await uiPrompt('设置导出密码（下次导入时需要输入此密码）：', { title: '导出加密文件', input: { placeholder: '至少 8 位', type: 'password' } });
         if (!exportPassword) return;
-        const confirm2 = prompt('确认密码：');
-        if (exportPassword !== confirm2) { alert('两次密码不一致'); return; }
+        const confirm2 = await uiPrompt('再次输入密码确认：', { title: '确认密码', input: { type: 'password' } });
+        if (exportPassword !== confirm2) { uiAlert('两次密码不一致'); return; }
         userPassword = exportPassword;
     } else {
         // 有密码时也允许修改
-        const changePwd = confirm(`将使用当前密码加密导出。\n\n点击"确定"使用现有密码，点击"取消"设置新密码。`);
+        const changePwd = await uiConfirm('将使用当前密码加密导出。\n\n点「使用现有密码」直接导出；点「设置新密码」重新设置一个。', { title: '导出加密文件', okText: '使用现有密码', cancelText: '设置新密码' });
         if (!changePwd) {
-            exportPassword = prompt('输入新密码：');
+            exportPassword = await uiPrompt('输入新密码：', { title: '设置新密码', input: { type: 'password' } });
             if (!exportPassword) return;
-            const confirm2 = prompt('确认新密码：');
-            if (exportPassword !== confirm2) { alert('两次密码不一致'); return; }
+            const confirm2 = await uiPrompt('确认新密码：', { title: '确认新密码', input: { type: 'password' } });
+            if (exportPassword !== confirm2) { uiAlert('两次密码不一致'); return; }
             userPassword = exportPassword;
         }
     }
@@ -5304,12 +5758,12 @@ function exportEncData() {
     a.click();
 
     clearUnsavedFlag();
-    if (verboseToast) showToast('加密文件已导出', 'success');
+    showToast('加密文件已导出', 'success', 2500);
 }
 
-function exportJsonData() {
+async function exportJsonData() {
     saveUserData();
-    if (!confirm('JSON为明文格式，所有数据均可见。确认导出？')) return;
+    if (!(await uiConfirm('JSON 为明文格式，所有数据均可见（包括密码保护的内容）。确认导出？', { title: '导出明文 JSON', okText: '仍然导出', danger: true }))) return;
     const blob = new Blob([JSON.stringify(inMemoryLoadedData, null, 2)], {type: 'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -5378,7 +5832,7 @@ function importTransactionCsv() {
     reader.onload = (e) => {
         const text = e.target.result;
         const rows = text.split(/\r\n|\n|\r/).filter(r => r.trim());
-        if (rows.length < 2) { alert('CSV文件似乎是空的'); return; }
+        if (rows.length < 2) { uiAlert('CSV文件似乎是空的'); return; }
         let successCount = 0, failLog = [];
         for (let i = 1; i < rows.length; i++) {
             const cols = rows[i].split(',').map(clean);
@@ -5404,9 +5858,9 @@ function importTransactionCsv() {
         saveUserData(); triggerAutoSave(); loadAllData(); filterUserData();
         displayedTransactionCount = 100;
         renderAllTransactions(); renderAccounts();
-        if (failLog.length > 0) alert(`导入完成。成功: ${successCount}。失败原因:\n${failLog.join('\n')}`);
-        else if (successCount === 0) alert('导入失败：没有成功导入任何数据');
-        else alert(`成功导入 ${successCount} 条记录`);
+        if (failLog.length > 0) uiAlert(`导入完成。成功: ${successCount}。失败原因:\n${failLog.join('\n')}`);
+        else if (successCount === 0) uiAlert('导入失败：没有成功导入任何数据');
+        else uiAlert(`成功导入 ${successCount} 条记录`);
     };
     reader.readAsText(file);
 }
@@ -5419,7 +5873,7 @@ function importTransferCsv() {
     reader.onload = (e) => {
         const text = e.target.result;
         const rows = text.split(/\r\n|\n|\r/).filter(r => r.trim());
-        if (rows.length < 2) { alert('CSV文件似乎是空的'); return; }
+        if (rows.length < 2) { uiAlert('CSV文件似乎是空的'); return; }
         let successCount = 0, failLog = [];
         for (let i = 1; i < rows.length; i++) {
             const cols = rows[i].split(',').map(clean);
@@ -5452,9 +5906,9 @@ function importTransferCsv() {
         }
         saveUserData(); triggerAutoSave(); loadAllData(); filterUserData();
         renderAllTransactions(); renderAccounts();
-        if (failLog.length > 0) alert(`导入完成。成功: ${successCount}。失败原因:\n${failLog.join('\n')}`);
-        else if (successCount === 0) alert('导入失败');
-        else alert(`成功导入 ${successCount} 条转账`);
+        if (failLog.length > 0) uiAlert(`导入完成。成功: ${successCount}。失败原因:\n${failLog.join('\n')}`);
+        else if (successCount === 0) uiAlert('导入失败');
+        else uiAlert(`成功导入 ${successCount} 条转账`);
     };
     reader.readAsText(file);
 }
@@ -5699,26 +6153,37 @@ function calculateBalance(accId) {
 function deleteAccount(id) {
     const hasTransactions = transactions.some(t => t.accountId == id || (t.relatedAccountId && t.relatedAccountId == id));
     if (hasTransactions) {
-        alert(`该账户已有交易流水，无法删除！\n请先删除或转移相关交易记录。`);
+        uiAlert(`该账户已有交易流水，无法删除！\n请先删除或转移相关交易记录。`);
         return;
     }
-    if (confirm('确定删除这个账户？此操作不可撤销。')) {
-        const index = accounts.findIndex(a => a.id == id);
-        if (index > -1) {
-            accounts.splice(index, 1);
-            // 写入删除日志，防止多设备同步时被恢复
-            if (!inMemoryLoadedData.deletedLog) inMemoryLoadedData.deletedLog = [];
-            const strId = String(id);
-            if (!inMemoryLoadedData.deletedLog.find(e => String(e.id) === strId)) {
-                inMemoryLoadedData.deletedLog.push({ id: strId, deletedAt: Date.now(), type: 'account' });
-            }
-            filterUserData();
-            renderAccounts();
-            updateSelectOptions();
-            triggerAutoSave();
-            if (verboseToast) showToast('账户已删除', 'success');
-        }
+    const index = accounts.findIndex(a => a.id == id);
+    if (index < 0) return;
+
+    const snapAccounts = accounts.slice();
+    const snapDeletedLog = (inMemoryLoadedData.deletedLog || []).slice();
+    const removed = accounts.splice(index, 1)[0];
+
+    // 写入删除日志，防止多设备同步时被恢复
+    if (!inMemoryLoadedData.deletedLog) inMemoryLoadedData.deletedLog = [];
+    const strId = String(id);
+    if (!inMemoryLoadedData.deletedLog.find(e => String(e.id) === strId)) {
+        inMemoryLoadedData.deletedLog.push({ id: strId, deletedAt: Date.now(), type: 'account' });
     }
+    filterUserData();
+    renderAccounts();
+    updateSelectOptions();
+    triggerAutoSave();
+    showToast('账户已删除', 'success', 2200);
+
+    showUndo(`已删除账户「${removed.name}」`, () => {
+        accounts = snapAccounts;
+        inMemoryLoadedData.deletedLog = snapDeletedLog;
+        filterUserData();
+        renderAccounts();
+        updateSelectOptions();
+        triggerAutoSave();
+        showToast('已撤销，账户已恢复', 'info', 2000);
+    });
 }
 
 function openNewAccount() {
@@ -5762,12 +6227,15 @@ function openEditAccount(id) {
 }
 
 /** 在编辑账户弹窗内点击“隐藏此账户”/“取消隐藏” */
-function toggleAccountHiddenFromModal() {
+async function toggleAccountHiddenFromModal() {
     const id = parseInt($('acc-id').value);
     const acc = accounts.find(a => a.id === id);
     if (!acc) return;
     const willHide = !acc.hidden;
-    if (willHide && !confirm(`确定隐藏账户「${acc.name}」？\n隐藏后该账户将不再显示在账户页面和交易页面，但可以在「设置 → 账户与用户 → 隐藏账户管理」中查看并恢复。`)) return;
+    if (willHide) {
+        const ok = await uiConfirm(`隐藏账户「${acc.name}」？\n\n隐藏后该账户不再显示在账户页和交易页，可在「设置 → 账户与用户 → 隐藏账户管理」里恢复。`, { okText: '隐藏' });
+        if (!ok) return;
+    }
     acc.hidden = willHide;
     acc.updatedAt = Date.now();
     saveUserData(); triggerAutoSave(); loadAllData(); filterUserData();
@@ -6353,18 +6821,23 @@ function handleEditTransferAmountChange(direction) {
 
 function deleteTransaction(id) {
     const t = transactions.find(x => x.id === id);
-    if (!t) { alert('找不到记录'); return; }
+    if (!t) { uiAlert('找不到记录'); return; }
 
     if (t.isTransfer) {
         let tOut = t.type === 'expense' ? t : (t.transferPairId ?
             transactions.find(x => x.transferPairId === t.transferPairId && x.type === 'expense') :
             transactions.find(x => x.isTransfer && x.type === 'expense' && x.date === t.date && x.relatedAccountId === t.accountId));
-        if (!tOut || tOut.ownerName !== currentUserName) { alert('无权删除此转账'); return; }
+        if (!tOut || tOut.ownerName !== currentUserName) { uiAlert('无权删除此转账'); return; }
     } else {
-        if (t.ownerName !== currentUserName) { alert('无权删除此交易'); return; }
+        if (t.ownerName !== currentUserName) { uiAlert('无权删除此交易'); return; }
     }
 
-    if (confirm('确定删除？')) {
+    // 删除前留一份快照，用于底部“撤销”（比弹确认框更顺手，也真的能挽回误删）
+    const snapTransactions = transactions.slice();
+    const snapDeletedLog = (inMemoryLoadedData.deletedLog || []).slice();
+    const snapCount = transactions.length;
+
+    {
         const now = Date.now();
         // 收集要删除的id，写入删除日志
         let deletedIds = [];
@@ -6395,13 +6868,25 @@ function deleteTransaction(id) {
         renderAllTransactions(); renderAccounts();
         if ($('view-stats').classList.contains('active-view')) renderStats();
     }
+
+    const removedCount = Math.max(1, snapCount - transactions.length);
+    showUndo(`已删除 ${removedCount} 笔${t.isTransfer ? '转账' : '交易'}`, () => {
+        transactions = snapTransactions;
+        inMemoryLoadedData.deletedLog = snapDeletedLog;
+        saveUserData(); triggerAutoSave(); filterUserData();
+        displayedTransactionCount = 100;
+        renderAllTransactions(); renderAccounts();
+        if ($('view-stats').classList.contains('active-view')) renderStats();
+        if (currentDetailAccountId) refreshDetailContent(currentDetailAccountId);
+        showToast('已撤销，记录已恢复', 'info', 2000);
+    });
 }
 
 function openEditTransaction(id) {
     const t = historyMode
         ? historyTransactions.find(x => x.id == id)
         : transactions.find(x => x.id == id);
-    if (!t) { alert('找不到此交易'); return; }
+    if (!t) { uiAlert('找不到此交易'); return; }
     if (t.isTransfer) { openEditTransfer(id); return; }
 
     const isOwner = t.ownerName === currentUserName;
@@ -6484,7 +6969,7 @@ function openEditTransfer(id) {
             tOut = pool.find(x => x.isTransfer && x.type === 'expense' && x.date === t.date && x.relatedAccountId === t.accountId);
         }
     }
-    if (!tOut || !tIn) { alert('找不到配对的转账记录'); return; }
+    if (!tOut || !tIn) { uiAlert('找不到配对的转账记录'); return; }
 
     // 只读判断：历史模式 或 非本人转账
     const isOwner = tOut.ownerName === currentUserName;
@@ -6540,20 +7025,16 @@ function maybeReturnToDetail() {
 
 function deleteCurrentTransaction() {
     const id = parseFloat($('edit-trans-id').value);
-    if (confirm('确定删除此交易？')) {
-        bootstrap.Modal.getInstance($('editTransactionModal')).hide();
-        deleteTransaction(id);
-        maybeReturnToDetail();
-    }
+    bootstrap.Modal.getInstance($('editTransactionModal')).hide();
+    deleteTransaction(id);
+    maybeReturnToDetail();
 }
 
 function deleteCurrentTransfer() {
     const id = parseFloat($('edit-transfer-id').value);
-    if (confirm('确定删除此转账？')) {
-        bootstrap.Modal.getInstance($('editTransactionModal')).hide();
-        deleteTransaction(id);
-        maybeReturnToDetail();
-    }
+    bootstrap.Modal.getInstance($('editTransactionModal')).hide();
+    deleteTransaction(id);
+    maybeReturnToDetail();
 }
 
 
@@ -6713,8 +7194,8 @@ function getInlineItems() {
         ...(it.tags ? { tags: it.tags } : {}),
         ...(it.desc ? { desc: it.desc } : {}),
     }));
-    if (items.length === 0) { alert('请至少填写一条有效金额'); return null; }
-    if (items.length === 1) { alert('拆分至少需要两条分录，请补充或退出拆分'); return null; }
+    if (items.length === 0) { uiAlert('请至少填写一条有效金额'); return null; }
+    if (items.length === 1) { uiAlert('拆分至少需要两条分录，请补充或退出拆分'); return null; }
     return items;
 }
 
@@ -6945,8 +7426,8 @@ function saveBudgetModal() {
     const idVal = $('budget-edit-id').value;
     const category = $('budget-category-select').value;
     const amount = parseFloat($('budget-amount-input').value);
-    if (!category) { alert('请选择分类'); return; }
-    if (!amount || amount <= 0) { alert('请输入有效的预算金额'); return; }
+    if (!category) { uiAlert('请选择分类'); return; }
+    if (!amount || amount <= 0) { uiAlert('请输入有效的预算金额'); return; }
 
     if (idVal) {
         const b = budgets.find(x => x.id === Number(idVal));
@@ -6961,10 +7442,18 @@ function saveBudgetModal() {
 }
 
 function deleteBudget(id) {
-    if (!confirm('删除这条预算？')) return;
+    const removed = budgets.find(b => b.id === id);
     budgets = budgets.filter(b => b.id !== id);
     markConfigUpdated(); triggerAutoSave();
     renderBudgetPane();
+    if (removed) {
+        showToast('预算已删除', 'success', 2000);
+        showUndo('已删除 1 条预算', () => {
+            budgets.push(removed);
+            markConfigUpdated(); triggerAutoSave(); renderBudgetPane();
+            showToast('已撤销，预算已恢复', 'info', 2000);
+        });
+    }
 }
 
 // ── 类别图标网格 ─────────────────────────────────────────────
@@ -7265,7 +7754,7 @@ $('edit-transaction-form').addEventListener('submit', (e) => {
         $('edit-trans-category').removeAttribute('disabled');
         category = $('edit-trans-category').value;
         const amount = parseFloat($('edit-trans-amount').value);
-        if (isNaN(amount) || amount <= 0) { alert('请输入有效金额'); return; }
+        if (isNaN(amount) || amount <= 0) { uiAlert('请输入有效金额'); return; }
         finalAmount = roundMoney(type === 'expense' ? -Math.abs(amount) : Math.abs(amount));
     }
 
@@ -7312,6 +7801,7 @@ $('edit-transaction-form').addEventListener('submit', (e) => {
             displayedTransactionCount = 100;
             renderAllTransactions(); renderAccounts();
             if ($('view-stats').classList.contains('active-view')) renderStats();
+            showToast('交易已更新', 'success', 2000);
             bootstrap.Modal.getInstance($('editTransactionModal')).hide();
             maybeReturnToDetail();
         }
@@ -7328,12 +7818,12 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
     const newAmtIn = parseFloat($('edit-transfer-amount-in').value);
     const newDesc = $('edit-transfer-desc').value;
 
-    if (newFromId === newToId) { alert('转出账户和转入账户不能相同'); return; }
-    if (isNaN(newAmtOut) || isNaN(newAmtIn)) { alert('请输入有效的转账金额'); return; }
+    if (newFromId === newToId) { uiAlert('转出账户和转入账户不能相同'); return; }
+    if (isNaN(newAmtOut) || isNaN(newAmtIn)) { uiAlert('请输入有效的转账金额'); return; }
 
     const accFrom = accounts.find(a => a.id == newFromId);
     const accTo = accounts.find(a => a.id == newToId);
-    if (!accFrom || !accTo) { alert('账户不存在'); return; }
+    if (!accFrom || !accTo) { uiAlert('账户不存在'); return; }
 
     if (mode === 'add') {
         const uniqueId = Date.now() + Math.random();
@@ -7362,7 +7852,7 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
     } else {
         const id = parseFloat($('edit-transfer-id').value);
         const tOut = transactions.find(x => x.id === id);
-        if (!tOut || !tOut.isTransfer) { alert('找不到转账记录'); return; }
+        if (!tOut || !tOut.isTransfer) { uiAlert('找不到转账记录'); return; }
 
         let tIn;
         if (tOut.transferPairId) {
@@ -7370,7 +7860,7 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
         } else {
             tIn = transactions.find(x => x.isTransfer && x.type === 'income' && x.date === tOut.date && x.accountId === tOut.relatedAccountId);
         }
-        if (!tIn) { alert('找不到配对的转账记录'); return; }
+        if (!tIn) { uiAlert('找不到配对的转账记录'); return; }
 
         tOut.date = newDate; tOut.accountId = newFromId; tOut.relatedAccountId = newToId;
         tOut.amount = -Math.abs(newAmtOut); tOut.desc = newDesc;
@@ -7384,6 +7874,7 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
         displayedTransactionCount = 100;
         renderAllTransactions(); renderAccounts();
         if ($('view-stats').classList.contains('active-view')) renderStats();
+        showToast('转账已更新', 'success', 2000);
         bootstrap.Modal.getInstance($('editTransactionModal')).hide();
         maybeReturnToDetail();
     }
@@ -7685,7 +8176,7 @@ function openBatchEditModal() {
     new bootstrap.Modal($('batchEditModal')).show();
 }
 
-function submitBatchEdit() {
+async function submitBatchEdit() {
     if (batchSelectedIds.size === 0) return;
     const applyAccount = $('batch-enable-account').checked;
     const applyCategory = $('batch-enable-category').checked;
@@ -7708,7 +8199,7 @@ function submitBatchEdit() {
     const newTags = applyTags ? $('batch-field-tags').value.trim() : null;
     const newDesc = applyDesc ? $('batch-field-desc').value.trim() : null;
 
-    if (!confirm(`确定要批量修改这 ${batchSelectedIds.size} 笔交易吗？此操作不可撤销。`)) return;
+    if (!(await uiConfirm(`确定要批量修改这 ${batchSelectedIds.size} 笔交易吗？此操作不可撤销。`, { title: '批量编辑', okText: '确认修改', danger: true }))) return;
 
     let count = 0;
     batchSelectedIds.forEach(id => {
@@ -8027,7 +8518,7 @@ window.addEventListener('load', () => {
     editModalEl.addEventListener('hide.bs.modal', function (event) {
         if (isUploadingAttachment) {
             event.preventDefault(); // 阻止关闭
-            alert('图片正在同步至网盘，请稍候...');
+            uiAlert('图片正在同步至网盘，请稍候...');
         }
     });
     editModalEl.addEventListener('hidden.bs.modal', function () {
@@ -8053,7 +8544,7 @@ async function handleAttachmentSelected(input) {
 
     let currentIds = $('edit-trans-attachment-id').value ? $('edit-trans-attachment-id').value.split(',').filter(id => id.trim()) : [];
     if (currentIds.length >= 3) {
-        alert('最多只能上传 3 个附件');
+        uiAlert('最多只能上传 3 个附件');
         input.value = '';
         return;
     }
@@ -8156,14 +8647,23 @@ function renderAttachmentThumbs(ids) {
     });
 }
 
-// 5. 删除特定位置的图片
+// 5. 删除特定位置的图片（直接删 + 可撤销，不再弹原生确认框）
 function removeSpecificAttachment(index) {
-if (!confirm('确定删除这张附件吗？')) return;
     const rawVal = $('edit-trans-attachment-id').value;
     let ids = rawVal ? rawVal.split(',').filter(id => id.trim()) : [];
+    const removed = ids[index];
+    if (!removed) return;
     ids.splice(index, 1);
     $('edit-trans-attachment-id').value = ids.join(',');
     renderAttachmentThumbs(ids);
+    showToast('附件已删除', 'success', 2000);
+    showUndo('已删除 1 个附件', () => {
+        const cur = ($('edit-trans-attachment-id').value || '').split(',').filter(x => x.trim());
+        cur.splice(index, 0, removed);
+        $('edit-trans-attachment-id').value = cur.join(',');
+        renderAttachmentThumbs(cur);
+        showToast('已撤销，附件已恢复', 'info', 2000);
+    });
 }
 
 // 6. 全屏预览
@@ -8224,14 +8724,14 @@ const myTrans = transactions.filter(t =>
         }
     });
 
-    if (suspects.length === 0) { alert('校对完成！所有分类均正常。'); return; }
+    if (suspects.length === 0) { uiAlert('校对完成！所有分类均正常。'); return; }
 
     const orphanCount = suspects.filter(s => s.isOrphan).length;
     const suggCount   = suspects.filter(s => !s.isOrphan).length;
     let summary = `发现 ${suspects.length} 条需处理：`;
     if (orphanCount) summary += `\n⚠️ ${orphanCount} 个孤立分类（不在分类列表中）`;
     if (suggCount)   summary += `\n💡 ${suggCount} 条建议修改`;
-    if (!confirm(summary + '\n\n点击确定开始逐条处理。')) return;
+    if (!(await uiConfirm(summary + '\n\n点「开始处理」后逐条确认。', { title: '分类历史校对', okText: '开始处理' }))) return;
 
     let updated = 0;
     for (let i = 0; i < suspects.length; i++) {
@@ -8242,13 +8742,13 @@ const myTrans = transactions.filter(t =>
             // 孤立分类：提示选择新分类
             const type = s.txList[0].amount > 0 ? 'income' : 'expense';
             const validList = (type === 'expense' ? categories.expense : categories.income).join('、');
-            const newCat = prompt(
-                `【${i + 1}/${suspects.length}】⚠️ 孤立分类\n\n` +
+            const newCat = await uiPrompt(
+                `【${i + 1}/${suspects.length}】孤立分类\n\n` +
                 `分类名称：「${s.orphanCat}」（已不在分类列表中）\n` +
                 `涉及交易：${s.txList.length} 条\n\n` +
-                `请输入新分类名称（可选）：\n${validList}\n\n` +
+                `请输入新分类名称：\n${validList}\n\n` +
                 `留空跳过，输入分类名后点确定修改。`,
-                s.orphanCat
+                { title: '修正孤立分类', okText: '修改', input: { value: s.orphanCat } }
             );
             if (newCat && newCat.trim() && newCat.trim() !== s.orphanCat) {
                 s.txList.forEach(t => { t.category = newCat.trim(); });
@@ -8256,26 +8756,26 @@ const myTrans = transactions.filter(t =>
             }
         } else {
             const typeLabel = s.t.amount > 0 ? '收入' : '支出';
-            ok = confirm(
-                `【${i + 1}/${suspects.length}】💡 分类建议\n\n` +
+            ok = await uiConfirm(
+                `【${i + 1}/${suspects.length}】分类建议\n\n` +
                 `日期：${s.t.date}\n备注：${s.t.desc}\n` +
                 `金额：${Math.abs(s.t.amount)} (${typeLabel})\n\n` +
-                `当前分类：${s.t.category}\n历史建议：${s.suggested}\n\n` +
-                `点击"确定"修改，点击"取消"跳过。`
+                `当前分类：${s.t.category}\n历史建议：${s.suggested}`,
+                { title: '分类建议', okText: '改为建议分类', cancelText: '跳过' }
             );
             if (ok) { s.t.category = s.suggested; updated++; }
         }
 
         if (i > 0 && i % 10 === 0 && i < suspects.length - 1) {
-            if (!confirm(`已处理 ${i + 1} 条，继续？`)) break;
+            if (!(await uiConfirm(`已处理 ${i + 1} 条，继续？`, { title: '继续校对', okText: '继续', cancelText: '停止' }))) break;
         }
     }
 
     if (updated > 0) {
         saveUserData(); triggerAutoSave(); renderAllTransactions(); renderStats();
-        alert(`校对完成，共修改 ${updated} 条记录。`);
+        uiAlert(`校对完成，共修改 ${updated} 条记录。`);
     } else {
-        alert('校对结束，未做任何修改。');
+        uiAlert('校对结束，未做任何修改。');
     }
 }
 
@@ -8944,7 +9444,7 @@ function diffBackupVsCurrent(backupData, currentData) {
 
 async function restoreFromBackup(fileName, dateStr) {
     if (!window._pendingRestoreData) return;
-    if (!confirm(`确认从备份「${dateStr}」恢复？\n\n此操作将完全覆盖当前本地数据，且不可撤销。`)) return;
+    if (!(await uiConfirm(`确认从备份「${dateStr}」恢复？\n\n此操作将完全覆盖当前本地数据，且不可撤销。`, { title: '从备份恢复', okText: '确认恢复', danger: true }))) return;
     inMemoryLoadedData = window._pendingRestoreData;
     _configUpdatedAt = window._pendingRestoreData.configUpdatedAt || Date.now();
     window._pendingRestoreData = null;
@@ -9339,9 +9839,25 @@ function switchTab(t, el) {
     if (t === 'settings') { showSettingsMenu(); renderExchangeRateSettings(); initPasswordHint(); renderUserManagement(); renderArchiveManagementUI(); }
 }
 
+function renderSettingsUserCard() {
+    const nameEl = $('settings-user-name');
+    const subEl  = $('settings-user-sub');
+    const avEl   = $('settings-user-avatar');
+    const name = currentUserName || '未登录';
+    if (nameEl) nameEl.textContent = name;
+    if (avEl) avEl.textContent = name.charAt(0).toUpperCase();
+    if (subEl) {
+        const mode = offlineMode
+            ? '离线模式'
+            : (useRows() ? '在线 · 表格增量同步' : '在线 · 整包同步');
+        subEl.textContent = mode + (hasUnsavedChanges ? ' · 有未同步改动' : '');
+    }
+}
+
 function showSettingsMenu() {
     $('settings-menu').style.display = 'block';
     $$('.settings-subpage').forEach(function(el) { el.classList.remove('active'); });
+    renderSettingsUserCard();
 }
 function showSettingsSubpage(name) {
     $('settings-menu').style.display = 'none';
@@ -9482,7 +9998,7 @@ async function deleteSingleOrphan(btn, fileId) {
 async function deleteAllOrphans(btn) {
     const rows = $$('#orphan-list [data-file-id]');
     if (rows.length === 0) return;
-    if (!confirm(`确定删除全部 ${rows.length} 个孤立附件？此操作不可撤销。`)) return;
+    if (!(await uiConfirm(`确定删除全部 ${rows.length} 个孤立附件？此操作不可撤销。`, { title: '删除孤立附件', okText: `删除 ${rows.length} 个`, danger: true }))) return;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>删除中…';
     let failed = 0;
@@ -9810,27 +10326,46 @@ function addCategory(e, type) {
     e.preventDefault();
     const input = $(type === 'expense' ? 'new-expense-cat' : 'new-income-cat');
     const val = input.value.trim();
-    if (val && !categories[type].includes(val)) {
-        categories[type].push(val); input.value = '';
-        markConfigUpdated(); saveUserData(); triggerAutoSave(); renderCategorySettings();
-        setTimeout(function() { openIconPicker(type, val); }, 100);
+    if (!val) return;
+    if (categories[type].includes(val)) {
+        showToast(`分类「${val}」已存在`, 'warning', 2200);
+        return;
     }
+    categories[type].push(val); input.value = '';
+    markConfigUpdated(); saveUserData(); triggerAutoSave(); renderCategorySettings();
+    showToast(`分类「${val}」已添加`, 'success', 2200);
+    setTimeout(function() { openIconPicker(type, val); }, 100);
 }
 
-function removeCategory(type, cat) {
-    const transCount = transactions.filter(t => t.type === type && t.category === cat).length;
-    const planCount = plannedTransactions ? plannedTransactions.filter(p => p.type === type && p.category === cat).length : 0;
+async function removeCategory(type, cat) {
+    const affected = transactions.filter(t => t.type === type && t.category === cat);
+    const affectedPlans = plannedTransactions ? plannedTransactions.filter(p => p.type === type && p.category === cat) : [];
     let confirmMsg = `确定删除分类 "${cat}"？`;
-    if (transCount > 0) confirmMsg += `\n\n⚠️ 将影响 ${transCount} 条历史记录（改为"未分类"）`;
-    if (planCount > 0) confirmMsg += `\n⚠️ 将影响 ${planCount} 条计划交易（改为"未分类"）`;
-    if (!confirm(confirmMsg)) return;
+    if (affected.length > 0) confirmMsg += `\n\n⚠️ 将影响 ${affected.length} 条历史记录（改为"未分类"）`;
+    if (affectedPlans.length > 0) confirmMsg += `\n⚠️ 将影响 ${affectedPlans.length} 条计划交易（改为"未分类"）`;
+    const ok = await uiConfirm(confirmMsg, { okText: '删除分类', danger: true });
+    if (!ok) return;
+
+    const snapCats = categories[type].slice();
+    const snapIcon = categoryIcons[cat];
+
     categories[type] = categories[type].filter(c => c !== cat);
-    transactions.forEach(t => { if (t.type === type && t.category === cat) t.category = '未分类'; });
-    if (plannedTransactions) plannedTransactions.forEach(p => { if (p.type === type && p.category === cat) p.category = '未分类'; });
+    affected.forEach(t => { t.category = '未分类'; });
+    affectedPlans.forEach(p => { p.category = '未分类'; });
     delete categoryIcons[cat];
     markConfigUpdated(); saveUserData(); triggerAutoSave(); renderCategorySettings();
     displayedTransactionCount = 100; renderAllTransactions(); renderStats();
-    if (verboseToast) showToast(`分类 "${cat}" 已删除`, 'success');
+    showToast(`分类「${cat}」已删除`, 'success', 2200);
+
+    showUndo(`已删除分类「${cat}」`, () => {
+        categories[type] = snapCats;
+        affected.forEach(t => { t.category = cat; });
+        affectedPlans.forEach(p => { p.category = cat; });
+        if (snapIcon) categoryIcons[cat] = snapIcon;
+        markConfigUpdated(); saveUserData(); triggerAutoSave(); renderCategorySettings();
+        renderAllTransactions(); renderStats();
+        showToast('已撤销，分类已恢复', 'info', 2000);
+    });
 }
 
 // ── 分类图标选择器 ───────────────────────────────────────────
@@ -9952,12 +10487,12 @@ function resetIconPicker() {
     bootstrap.Modal.getInstance($('iconPickerModal'))?.hide();
 }
 
-function editCategoryName(type, oldName) {
-    const newName = prompt(`将 "${oldName}" 修改为：`, oldName);
+async function editCategoryName(type, oldName) {
+    const newName = await uiPrompt(`将「${oldName}」修改为：`, { title: '修改分类名称', okText: '保存', input: { value: oldName } });
     if (!newName) return;
     const trimmedName = newName.trim();
     if (trimmedName === '' || trimmedName === oldName) return;
-    if (categories[type].includes(trimmedName)) { alert('该分类名称已存在！'); return; }
+    if (categories[type].includes(trimmedName)) { uiAlert('该分类名称已存在！'); return; }
     const catIdx = categories[type].indexOf(oldName);
     if (catIdx > -1) categories[type][catIdx] = trimmedName;
     transactions.forEach(t => {
@@ -10155,38 +10690,42 @@ $('planned-form').addEventListener('submit', (e) => {
 });
 
 function deletePlanned(id) {
-    if (!confirm('确定删除这个计划交易吗？')) return;
     const index = plannedTransactions.findIndex(p => p.id === id);
-    if (index > -1 && plannedTransactions[index].ownerName === currentUserName) {
-        plannedTransactions.splice(index, 1);
+    if (index < 0 || plannedTransactions[index].ownerName !== currentUserName) return;
+    const removed = plannedTransactions.splice(index, 1)[0];
+    saveUserData(); triggerAutoSave(); loadAllData(); filterUserData(); renderPlannedTransactions();
+    showToast('计划交易已删除', 'success', 2000);
+    showUndo(`已删除计划「${removed.name}」`, () => {
+        plannedTransactions.push(removed);
         saveUserData(); triggerAutoSave(); loadAllData(); filterUserData(); renderPlannedTransactions();
-        if (verboseToast) showToast('计划已删除', 'success');
-    }
+        showToast('已撤销，计划已恢复', 'info', 2000);
+    });
 }
 
-function manualGeneratePlanned(id) {
+async function manualGeneratePlanned(id) {
     const plan = plannedTransactions.find(p => p.id === id);
     if (!plan) return;
     const today = new Date().toISOString().split('T')[0];
     const nextDate = getNextGenerationDate(plan);
-    let promptMessage = `立即生成交易 "${plan.name}"\n\n`;
-    if (nextDate) promptMessage += `📅 计划下次生成日期: ${nextDate}\n`;
-    promptMessage += `📅 今天: ${today}`;
-    if (plan.lastGenerated) promptMessage += `\n📝 上次生成: ${plan.lastGenerated}`;
-    promptMessage += `\n\n请输入交易日期 (YYYY-MM-DD):`;
-    const targetDate = prompt(promptMessage, today);
+    let promptMessage = `立即生成交易「${plan.name}」\n\n`;
+    if (nextDate) promptMessage += `计划下次生成日期：${nextDate}\n`;
+    promptMessage += `今天：${today}`;
+    if (plan.lastGenerated) promptMessage += `\n上次生成：${plan.lastGenerated}`;
+    promptMessage += `\n\n请输入交易日期（YYYY-MM-DD）：`;
+    const targetDate = await uiPrompt(promptMessage, { title: '按计划生成交易', okText: '生成', input: { value: today, placeholder: 'YYYY-MM-DD' } });
     if (!targetDate) return;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) { alert('日期格式错误！请使用 YYYY-MM-DD 格式'); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) { uiAlert('日期格式错误！请使用 YYYY-MM-DD 格式'); return; }
     generateTransactionFromPlan(plan, targetDate);
 }
 
-function generateTransactionFromPlan(plan, targetDate) {
+async function generateTransactionFromPlan(plan, targetDate) {
     const acc = accounts.find(a => a.id == plan.accountId);
     if (!acc) return;
-    if (plan.lastGenerated === targetDate) { alert(`计划 "${plan.name}" 在 ${targetDate} 已经生成过交易了！`); return; }
+    if (plan.lastGenerated === targetDate) { uiAlert(`计划 "${plan.name}" 在 ${targetDate} 已经生成过交易了！`); return; }
     const existingTransaction = transactions.find(t => t.fromPlannedId === plan.id && t.date === targetDate);
     if (existingTransaction) {
-        if (!confirm(`警告：${targetDate} 已存在来自此计划的交易！是否仍要生成新交易？（不推荐）`)) return;
+        const ok = await uiConfirm(`警告：${targetDate} 已存在来自此计划的交易！是否仍要生成新交易？（不推荐）`, { okText: '仍然生成', cancelText: '取消' });
+        if (!ok) return;
     }
     const amount = plan.type === 'expense' ? -Math.abs(plan.amount) : Math.abs(plan.amount);
     transactions.unshift({
@@ -10200,6 +10739,7 @@ function generateTransactionFromPlan(plan, targetDate) {
     plan.updatedAt = Date.now();
     saveUserData(); triggerAutoSave(); loadAllData(); filterUserData();
     displayedTransactionCount = 100; renderAllTransactions(); renderAccounts(); renderPlannedTransactions();
+    showToast(`已按计划「${plan.name}」生成 ${targetDate} 的交易`, 'success', 2600);
 }
 
 function getNextGenerationDate(plan) {
@@ -10260,7 +10800,7 @@ function addUserFromSettings(e) {
     const input = $('new-user-input');
     const name = input.value.trim();
     if (!name) return;
-    if (dataUsers.includes(name)) { alert(`用户 "${name}" 已存在`); return; }
+    if (dataUsers.includes(name)) { uiAlert(`用户 "${name}" 已存在`); return; }
     dataUsers.push(name);
     if (!inMemoryLoadedData.allUserData[name]) {
         inMemoryLoadedData.allUserData[name] = { accounts: [], transactions: [], plannedTransactions: [] };
@@ -10271,11 +10811,11 @@ function addUserFromSettings(e) {
     if (verboseToast) showToast(`已添加用户 "${name}"`, 'success');
 }
 
-function renameUser(oldName) {
-    const newName = prompt(`将用户 "${oldName}" 改名为：`, oldName);
+async function renameUser(oldName) {
+    const newName = await uiPrompt(`将用户「${oldName}」改名为：`, { title: '重命名用户', okText: '保存', input: { value: oldName } });
     if (!newName || newName.trim() === oldName) return;
     const trimmed = newName.trim();
-    if (dataUsers.includes(trimmed)) { alert(`用户名 "${trimmed}" 已存在`); return; }
+    if (dataUsers.includes(trimmed)) { uiAlert(`用户名 "${trimmed}" 已存在`); return; }
     const idx = dataUsers.indexOf(oldName);
     if (idx === -1) return;
     dataUsers[idx] = trimmed;
@@ -10297,16 +10837,26 @@ function renameUser(oldName) {
     if (verboseToast) showToast(`已重命名为 "${trimmed}"`, 'success');
 }
 
-function removeUser(name) {
+async function removeUser(name) {
     const hasData = accounts.some(a => a.ownerName === name) ||
                     transactions.some(t => t.ownerName === name);
-    if (hasData) { alert('该用户有账户或交易数据，不可删除。'); return; }
-    if (!confirm(`确定删除用户 "${name}"？`)) return;
+    if (hasData) { uiAlert('该用户有账户或交易数据，不可删除。'); return; }
+    const ok = await uiConfirm(`确定删除用户 "${name}"？`, { okText: '删除用户', danger: true });
+    if (!ok) return;
+    const snapUsers = dataUsers.slice();
+    const snapSlot = inMemoryLoadedData.allUserData[name];
     dataUsers = dataUsers.filter(u => u !== name);
     delete inMemoryLoadedData.allUserData[name];
     saveUserData(); triggerAutoSave();
     renderUserManagement();
-    if (verboseToast) showToast(`已删除用户 "${name}"`, 'success');
+    showToast(`已删除用户「${name}」`, 'success', 2200);
+    showUndo(`已删除用户「${name}」`, () => {
+        dataUsers = snapUsers;
+        if (snapSlot) inMemoryLoadedData.allUserData[name] = snapSlot;
+        saveUserData(); triggerAutoSave();
+        renderUserManagement();
+        showToast('已撤销，用户已恢复', 'info', 2000);
+    });
 }
 
 // ── 标签建议下拉（点击/聚焦触发） ──
@@ -11214,13 +11764,66 @@ function _escHtml(s) {
 
 
 </script>
-<!-- PWA Service Worker 注册 -->
+<!-- PWA Service Worker 注册 + 新版本提示 -->
 <script>
+/* 以前 SW 装好就 skipWaiting + 自动接管，用户可能正在填表，页面被静默换掉。
+ * 现在：新版本先进入 waiting 状态，顶部弹一条“有新版本，点击刷新”，
+ * 用户点了才切换（切换前先把未保存的改动落盘）。 */
+let _swReg = null;
+let _swReloading = false;
+let _swUpdateRequested = false;
+let _updateBannerDismissed = false;
+
+function showUpdateBanner() {
+    const el = $('update-banner');
+    if (!el || _updateBannerDismissed) return;
+    el.classList.add('show');
+}
+function dismissUpdateBanner() {
+    const el = $('update-banner');
+    if (el) el.classList.remove('show');
+    _updateBannerDismissed = true;      // 本次会话不再打扰，下次打开还会提示
+}
+function applyAppUpdate() {
+    const el = $('update-banner');
+    if (el) el.classList.remove('show');
+    flushDraftNow();                    // 先把未保存的改动写进本地草稿，再刷新
+    _swUpdateRequested = true;
+    if (_swReg && _swReg.waiting) {
+        _swReg.waiting.postMessage('SKIP_WAITING');
+    } else {
+        location.reload();
+    }
+}
+
 if ('serviceWorker' in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').then(reg => {
-        }).catch(err => {
-        });
+            _swReg = reg;
+            // 上次已下载好但没刷新：直接提示
+            if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner();
+            reg.addEventListener('updatefound', () => {
+                const nw = reg.installing;
+                if (!nw) return;
+                nw.addEventListener('statechange', () => {
+                    if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner();
+                });
+            });
+        }).catch(() => {});
+        // 每小时主动检查一次新版本
+        setInterval(() => { if (_swReg) _swReg.update().catch(() => {}); }, 60 * 60 * 1000);
+    });
+    // 回到前台时也检查一次
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && _swReg) _swReg.update().catch(() => {});
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_swReloading) return;
+        // 首次安装（本来没有 controller）不要自动刷新；只有“用户点了刷新”或本来就受控时才刷新
+        if (!hadController && !_swUpdateRequested) return;
+        _swReloading = true;
+        location.reload();
     });
 }
 

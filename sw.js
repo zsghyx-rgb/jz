@@ -1,17 +1,22 @@
 /* 记一笔 · Service Worker
- * 与 index.html v3.8.x 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
+ * 与 index.html v3.11.0 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
  *
  * 策略：
- *  1. 应用外壳（index.html / manifest.json / 图标）：网络优先（3 秒超时），失败回退缓存 → 联网时总能拿到最新版，断网也能打开
- *  2. CDN（Bootstrap / Bootstrap Icons / CryptoJS / Chart.js）：带版本号的 URL 缓存优先；不带版本号的（chart.js）先读缓存、后台更新
- *  3. 数据请求一律不拦截、不缓存：Google Apps Script、Supabase、Google Drive 附件等都直接走网络
+ *  1. 应用外壳（index.html / manifest.json / 图标）：网络优先（3 秒超时），失败回退缓存
+ *     → 联网时总能拿到最新版，断网也能打开
+ *  2. CDN（Bootstrap / Bootstrap Icons / CryptoJS / Chart.js）：全部使用固定版本号，
+ *     路径里带版本号 → 内容永不变化 → 缓存优先，离线可用、也不会某天被上游改坏
+ *  3. 数据请求一律不拦截、不缓存：Google Apps Script / Google Drive 附件等都直接走网络
  *     （账目数据是加密文件/密文行，同步状态由 App 自己管理，不能被 SW 缓存）
  *
- * 发布新版本时：只要改一下下面的 APP_VERSION（与 index.html 里的 APP_VERSION 保持一致），旧缓存会在激活时自动清理。
+ * 版本更新：
+ *  install 里不再自动 skipWaiting。新版本会停在 waiting 状态，
+ *  页面收到提示后显示“有新版本，点击刷新”，用户点击时才 postMessage('SKIP_WAITING') 切换。
+ *  这样用户正在填表时不会被打断。
  */
-const APP_VERSION = '3.10.2';
+const APP_VERSION = '3.11.0';
 const SHELL_CACHE = `jibi-shell-v${APP_VERSION}`;
-const CDN_CACHE = 'jibi-cdn-v1';   // CDN 资源带版本号，长期有效，不随 APP_VERSION 清理
+const CDN_CACHE = 'jibi-cdn-v2';   // CDN 资源带版本号，长期有效，不随 APP_VERSION 清理
 
 const SHELL_URLS = [
   './',
@@ -20,12 +25,14 @@ const SHELL_URLS = [
   './icon-192.png',
 ];
 
+/* 固定版本：任何一项都不要再写“不指定版本”的地址（以前 chart.js 就是这样，
+ * 上游一发新版就可能直接改坏图表）。这里必须与 index.html 里的 <script>/<link> 完全一致。 */
 const CDN_URLS = [
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
-  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
+  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css',
   'https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js',
-  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
 ];
 
 // 这些域名永远走网络，SW 不介入
@@ -38,11 +45,12 @@ const BYPASS_HOSTS = [
   'www.googleapis.com',
   'accounts.google.com',
 ];
-const BYPASS_SUFFIXES = ['.supabase.co', '.supabase.in'];
 
 function shouldBypass(url) {
   const h = url.hostname;
-  return BYPASS_HOSTS.includes(h) || BYPASS_SUFFIXES.some(s => h.endsWith(s));
+  if (BYPASS_HOSTS.includes(h)) return true;
+  if (h.endsWith('.googleusercontent.com')) return true;
+  return false;
 }
 
 /* ───────── 安装：预缓存外壳与 CDN（单个失败不影响整体安装） ───────── */
@@ -57,11 +65,11 @@ self.addEventListener('install', event => {
         await cdn.add(u).catch(() => {});
       }),
     ]);
-    await self.skipWaiting();
+    // 注意：这里故意不调用 skipWaiting()，等页面提示用户后再切换
   })());
 });
 
-/* ───────── 激活：清理旧版本外壳缓存，立即接管页面 ───────── */
+/* ───────── 激活：清理旧版本外壳缓存，接管页面 ───────── */
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -72,8 +80,11 @@ self.addEventListener('activate', event => {
   })());
 });
 
+/* 页面点击“刷新”后发来 SKIP_WAITING：立刻接管并让页面 reload */
 self.addEventListener('message', event => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data === 'SKIP_WAITING' || (event.data && event.data.type === 'SKIP_WAITING')) {
+    self.skipWaiting();
+  }
 });
 
 /* ───────── 请求拦截 ───────── */
@@ -86,19 +97,18 @@ self.addEventListener('fetch', event => {
 
   // 页面导航 或 同源外壳资源：网络优先 + 缓存兜底
   if (req.mode === 'navigate' || url.origin === self.location.origin) {
-    event.respondWith(networkFirst(req, event));
+    event.respondWith(networkFirst(req));
     return;
   }
 
-  // CDN
+  // CDN：带版本号的缓存优先
   if (url.hostname === 'cdn.jsdelivr.net') {
-    const versioned = /@\d+\.\d+/.test(url.pathname);   // 路径里带版本号 → 内容不会变，缓存优先
-    event.respondWith(versioned ? cacheFirst(req) : staleWhileRevalidate(req, event));
+    event.respondWith(cacheFirst(req));
   }
   // 其他跨域资源：不处理，浏览器默认行为
 });
 
-async function networkFirst(req, event) {
+async function networkFirst(req) {
   const cache = await caches.open(SHELL_CACHE);
   try {
     const res = await timeout(fetch(req), 3000);
@@ -123,17 +133,6 @@ async function cacheFirst(req) {
   const res = await fetch(req);
   if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
   return res;
-}
-
-async function staleWhileRevalidate(req, event) {
-  const cache = await caches.open(CDN_CACHE);
-  const hit = await cache.match(req);
-  const refresh = fetch(req).then(res => {
-    if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
-    return res;
-  }).catch(() => null);
-  if (hit) { event.waitUntil(refresh); return hit; }
-  return (await refresh) || Response.error();
 }
 
 function timeout(promise, ms) {
