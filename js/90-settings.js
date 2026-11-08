@@ -4,6 +4,9 @@
 function toggleAmountVisibility() {
     amountsHidden = !amountsHidden;
     renderAccounts();
+    // 重绘列表，让首页概览、每日合计和每一行金额同时套用隐藏状态
+    if (typeof renderAllTransactions === 'function') renderAllTransactions();
+    else renderTransactionsHero();
     if ($('view-stats').classList.contains('active-view')) renderStats();
 }
 
@@ -213,7 +216,7 @@ function renderCategorySettings() {
                     <button class="btn btn-sm py-0 px-1 ' + (idx === 0 ? 'invisible' : '') + '" onclick="moveCategory(\'' + type + '\',' + idx + ',-1)" style="line-height:1;"><i class="bi bi-chevron-up"></i></button>\
                     <button class="btn btn-sm py-0 px-1 ' + (idx === categories[type].length - 1 ? 'invisible' : '') + '" onclick="moveCategory(\'' + type + '\',' + idx + ',1)" style="line-height:1;"><i class="bi bi-chevron-down"></i></button>\
                 </div>\
-                <span class="cat-icon-mini" style="--cat-color:' + meta.color + ';--cat-color-rgb:' + _hexToRgbStr(meta.color) + ';cursor:pointer;" onclick="openIconPicker(\'' + type + '\',\'' + cat + '\')" title="设置图标"><i class="bi ' + meta.icon + '"></i></span>\
+                <span class="cat-icon-mini" style="--cat-color:' + meta.color + ';--cat-color-rgb:' + _catColorRgbStr(meta.color) + ';cursor:pointer;" onclick="openIconPicker(\'' + type + '\',\'' + cat + '\')" title="设置图标"><i class="bi ' + meta.icon + '"></i></span>\
                 <span class="cat-text flex-grow-1" style="cursor:pointer;" title="点击修改名称" onclick="editCategoryName(\'' + type + '\',\'' + cat + '\')">' + cat + '</span>\
                 <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeCategory(\'' + type + '\',\'' + cat + '\')" title="删除分类"><i class="bi bi-trash"></i></button>';
             row.dataset.idx = idx;
@@ -368,7 +371,7 @@ function openIconPicker(type, cat) {
 function renderIconPickerGrid() {
     const grid = $('icon-picker-grid');
     grid.style.setProperty('--picker-color', _iconPickerColor);
-    grid.style.setProperty('--picker-color-rgb', _hexToRgbStr(_iconPickerColor));
+    grid.style.setProperty('--picker-color-rgb', _catColorRgbStr(_iconPickerColor));
     grid.innerHTML = ICON_PICKER_LIST.map(ic =>
         `<div class="icon-picker-item${ic === _iconPickerIcon ? ' selected' : ''}" onclick="selectIconPickerIcon('${ic}')"><i class="bi ${ic}"></i></div>`
     ).join('');

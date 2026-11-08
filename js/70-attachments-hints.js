@@ -261,7 +261,7 @@ function renderAttachmentThumbs(ids) {
                 <div class="thumb-img d-flex flex-column align-items-center justify-content-center gap-1"
                      style="background:var(--bs-tertiary-bg);border-radius:6px;cursor:pointer;font-size:0.7rem;color:var(--bs-secondary);padding:4px;"
                      onclick="window.open('${downloadUrl}', '_blank')" title="点击下载 PDF">
-                    <i class="bi bi-file-earmark-pdf" style="font-size:1.8rem;color:#dc3545;"></i>
+                    <i class="bi bi-file-earmark-pdf" style="font-size:1.8rem;color:var(--app-expense);"></i>
                     <span>PDF</span>
                 </div>
                 <button type="button" class="thumb-remove" onclick="removeSpecificAttachment(${index})">✕</button>

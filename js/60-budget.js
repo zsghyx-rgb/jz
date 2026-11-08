@@ -47,6 +47,7 @@ function renderBudgetPane() {
             还没有设置预算<br>
             <span style="font-size:0.8rem;">点击上方「添加预算」开始追踪每月支出</span>
         </div>`;
+        if (typeof renderTransactionsHero === 'function') renderTransactionsHero();
         return;
     }
 
@@ -71,13 +72,13 @@ function renderBudgetPane() {
     wrap.innerHTML = rows.map(b => {
         const pctRaw = b.amountDisp > 0 ? (b.spent / b.amountDisp) * 100 : 0;
         const pct = Math.min(100, pctRaw);
-        const barColor = pctRaw >= 100 ? '#dc3545' : pctRaw >= 80 ? '#fd7e14' : '#198754';
+        const barColor = pctRaw >= 100 ? 'var(--app-expense)' : pctRaw >= 80 ? 'var(--app-transfer)' : 'var(--app-income)';
         const label = b.category === '__total__'
             ? '<i class="bi bi-pin-angle-fill text-primary" style="font-size:0.75rem;"></i> 总支出预算'
             : b.category;
         const remain = b.amountDisp - b.spent;
         const remainHtml = pctRaw >= 100
-            ? `<span style="color:#dc3545;">超支 ${formatAmount(Math.abs(remain), dispCurrency)}</span>`
+            ? `<span style="color:var(--app-expense);">超支 ${formatAmount(Math.abs(remain), dispCurrency)}</span>`
             : `<span class="text-muted">剩余 ${formatAmount(remain, dispCurrency)}</span>`;
         return `
         <div class="card shadow-sm mb-2">
@@ -99,6 +100,7 @@ function renderBudgetPane() {
             </div>
         </div>`;
     }).join('');
+    if (typeof renderTransactionsHero === 'function') renderTransactionsHero();
 }
 
 // 在预算弹窗里把货币单位标出来，避免用户填错单位

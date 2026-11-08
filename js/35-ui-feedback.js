@@ -11,13 +11,14 @@ const toastIcons = {
 };
 
 function applyToastStyle(el, type) {
+    // 使用 Bootstrap 语义变量的 subtle/emphasis 组合，随主题与深浅色自动适配
     const colors = {
-        success: { bg: '#d1e7dd', color: '#0a3622', border: '#a3cfbb' },
-        warning: { bg: '#fff3cd', color: '#664d03', border: '#ffda6a' },
-        error:   { bg: '#f8d7da', color: '#58151c', border: '#f1aeb5' },
-        syncing: { bg: '#cfe2ff', color: '#084298', border: '#9ec5fe' },
-        progress:{ bg: '#cfe2ff', color: '#084298', border: '#9ec5fe' },
-        info:    { bg: '#cff4fc', color: '#055160', border: '#9eeaf9' },
+        success: { bg: 'var(--bs-success-bg-subtle)', color: 'var(--bs-success-text-emphasis)', border: 'var(--bs-success-border-subtle)' },
+        warning: { bg: 'var(--bs-warning-bg-subtle)', color: 'var(--bs-warning-text-emphasis)', border: 'var(--bs-warning-border-subtle)' },
+        error:   { bg: 'var(--bs-danger-bg-subtle)',  color: 'var(--bs-danger-text-emphasis)',  border: 'var(--bs-danger-border-subtle)' },
+        syncing: { bg: 'var(--bs-primary-bg-subtle)', color: 'var(--bs-primary-text-emphasis)', border: 'var(--bs-primary-border-subtle)' },
+        progress:{ bg: 'var(--bs-primary-bg-subtle)', color: 'var(--bs-primary-text-emphasis)', border: 'var(--bs-primary-border-subtle)' },
+        info:    { bg: 'var(--bs-info-bg-subtle)',    color: 'var(--bs-info-text-emphasis)',    border: 'var(--bs-info-border-subtle)' },
     };
     const c = colors[type] || colors.success;
     el.style.background = c.bg;

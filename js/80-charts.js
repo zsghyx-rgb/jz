@@ -96,13 +96,17 @@ function renderExpenseChart(data) {
         }
     });
     const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+    const t = getChartTheme();
     const chart = upsertChart('expense', ctx, {
         type: 'bar',
-        data: { labels: sorted.map(x => x[0]), datasets: [{ label: '支出', data: sorted.map(x => x[1]), backgroundColor: '#dc3545' }] },
+        data: { labels: sorted.map(x => x[0]), datasets: [{ label: '支出', data: sorted.map(x => x[1]), backgroundColor: t.expense }] },
         options: {
             indexAxis: 'y', maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true } }, animation: { duration: 0 },
+            scales: {
+                x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } },
+                y: { grid: { display: false }, ticks: { color: t.text } }
+            }, animation: { duration: 0 },
             onClick(e, els) {
                 const meta = chartInstances.expense && chartInstances.expense.$meta;
                 if (!meta || !els.length) return;
@@ -140,13 +144,17 @@ function renderTagChart(data) {
         }
     });
     const sorted = Object.entries(tags).sort((a, b) => b[1] - a[1]);
+    const t = getChartTheme();
     const chart = upsertChart('tags', ctx, {
         type: 'bar',
-        data: { labels: sorted.map(x => x[0]), datasets: [{ label: '金额', data: sorted.map(x => x[1]), backgroundColor: '#0d6efd' }] },
+        data: { labels: sorted.map(x => x[0]), datasets: [{ label: '金额', data: sorted.map(x => x[1]), backgroundColor: t.primary }] },
         options: {
             maintainAspectRatio: false, indexAxis: 'y',
             plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true } }, animation: { duration: 0 },
+            scales: {
+                x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } },
+                y: { grid: { display: false }, ticks: { color: t.text } }
+            }, animation: { duration: 0 },
             onClick(e, els) {
                 const meta = chartInstances.tags && chartInstances.tags.$meta;
                 if (!meta || !els.length) return;
@@ -174,6 +182,7 @@ function renderTrendChart(data) {
         if (amt > 0) months[m].inc += amt; else months[m].exp += Math.abs(amt);
     });
     const labels = Object.keys(months).sort();
+    const t = getChartTheme();
     const canvas = $('monthlyTrendChart');
     const targetW = Math.max(labels.length * 60, 400);
     if (!chartInstances.trend) canvas.width = targetW;
@@ -183,13 +192,19 @@ function renderTrendChart(data) {
         data: {
             labels,
             datasets: [
-                { label: '收入', data: labels.map(m => months[m].inc), backgroundColor: '#198754', type: 'bar' },
-                { label: '支出', data: labels.map(m => months[m].exp), backgroundColor: '#dc3545', type: 'bar' },
-                { label: '结余', data: labels.map(m => months[m].inc - months[m].exp), borderColor: '#0d6efd', type: 'line', fill: false, tension: 0.4 }
+                { label: '收入', data: labels.map(m => months[m].inc), backgroundColor: t.income, type: 'bar' },
+                { label: '支出', data: labels.map(m => months[m].exp), backgroundColor: t.expense, type: 'bar' },
+                { label: '结余', data: labels.map(m => months[m].inc - months[m].exp), borderColor: t.primary, type: 'line', fill: false, tension: 0.4 }
             ]
         },
         options: {
-            maintainAspectRatio: false, plugins: { legend: { display: true } }, animation: { duration: 0 },
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { color: t.text } } },
+            scales: {
+                x: { grid: { color: t.grid }, ticks: { color: t.muted } },
+                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } }
+            },
+            animation: { duration: 0 },
             onClick(e, els) {
                 const meta = chartInstances.trend && chartInstances.trend.$meta;
                 if (!meta || !els.length) return;
@@ -281,10 +296,20 @@ function renderAssetHistoryChart() {
     if (wrapper && wrapper.classList.contains('d-none')) return;
 
     const series = getNetWorthSeries();
+    const t = getChartTheme();
     const chart = upsertChart('assetHistory', ctx, {
         type: 'line',
-        data: { labels: series.labels, datasets: [{ label: '净资产', data: series.data, borderColor: '#0d6efd', fill: true, backgroundColor: 'rgba(13,110,253,0.1)', tension: 0.4 }] },
-        options: { maintainAspectRatio: false, elements: { point: { radius: 0 } }, plugins: { legend: { display: true } }, animation: { duration: 0 } }
+        data: { labels: series.labels, datasets: [{ label: '净资产', data: series.data, borderColor: t.primary, fill: true, backgroundColor: chartAlpha(t.primary, 0.12), tension: 0.4 }] },
+        options: {
+            maintainAspectRatio: false,
+            elements: { point: { radius: 0 } },
+            plugins: { legend: { display: true, labels: { color: t.text } } },
+            scales: {
+                x: { grid: { color: t.grid }, ticks: { color: t.muted } },
+                y: { grid: { color: t.grid }, ticks: { color: t.muted } }
+            },
+            animation: { duration: 0 }
+        }
     });
     chart.resize();
 }
@@ -309,15 +334,22 @@ function renderCategoryTrendChart(data) {
         }
     });
     const labels = Object.keys(months).sort();
+    const t = getChartTheme();
     const canvas = $('categoryTrendChart');
     const targetW = Math.max(labels.length * 60, 400);
     if (!chartInstances.cattrend) canvas.width = targetW;
     else if (canvas.width !== targetW) { canvas.width = targetW; chartInstances.cattrend.resize(); }
     const chart = upsertChart('cattrend', ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ label: cat, data: labels.map(m => months[m]), borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.5)', fill: true, tension: 0.4 }] },
+        data: { labels, datasets: [{ label: cat, data: labels.map(m => months[m]), borderColor: t.transfer, backgroundColor: chartAlpha(t.transfer, 0.45), fill: true, tension: 0.4 }] },
         options: {
-            maintainAspectRatio: false, plugins: { legend: { display: true } }, animation: { duration: 0 },
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { color: t.text } } },
+            scales: {
+                x: { grid: { color: t.grid }, ticks: { color: t.muted } },
+                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } }
+            },
+            animation: { duration: 0 },
             onClick(e, els) {
                 const meta = chartInstances.cattrend && chartInstances.cattrend.$meta;
                 if (!meta || !els.length) return;
@@ -345,16 +377,21 @@ function renderTotalExpenseTrendChart(data) {
         months[m] = (months[m] || 0) + amt;
     });
     const labels = Object.keys(months).sort();
+    const t = getChartTheme();
     const canvas = $('totalExpenseTrendChart');
     const targetW = Math.max(labels.length * 60, 400);
     if (!chartInstances.totalExpense) canvas.width = targetW;
     else if (canvas.width !== targetW) { canvas.width = targetW; chartInstances.totalExpense.resize(); }
     const chart = upsertChart('totalExpense', ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ label: '总支出', data: labels.map(m => months[m]), borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.5)', fill: true, tension: 0.4 }] },
+        data: { labels, datasets: [{ label: '总支出', data: labels.map(m => months[m]), borderColor: t.expense, backgroundColor: chartAlpha(t.expense, 0.42), fill: true, tension: 0.4 }] },
         options: {
-            maintainAspectRatio: false, plugins: { legend: { display: true } },
-            scales: { y: { beginAtZero: true } }, animation: { duration: 0 },
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { color: t.text } } },
+            scales: {
+                x: { grid: { color: t.grid }, ticks: { color: t.muted } },
+                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } }
+            }, animation: { duration: 0 },
             onClick(e, els) {
                 const meta = chartInstances.totalExpense && chartInstances.totalExpense.$meta;
                 if (!meta || !els.length) return;

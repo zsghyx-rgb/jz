@@ -94,8 +94,10 @@ function renderDetailContent(id) {
             const isTransfer = t.isTransfer;
             let canEdit = t.ownerName === currentUserName;
             let titleHtml = '', subLine = t.date;
-            let amtColor = isTransfer ? '#ff8c00' : (t.amount >= 0 ? '#198754' : '#dc3545');
-            let iconClass = isTransfer ? 'bi-arrow-left-right' : (t.amount >= 0 ? 'bi-arrow-up-circle' : 'bi-arrow-down-circle');
+            let amountClass = 'is-expense';
+            let iconClass = 'bi-tag-fill';
+            let iconColor = 'var(--app-muted)';
+            let catName = t.category || '';
 
             if (isTransfer) {
                 const { tOut, tIn } = resolveTransfer(t);
@@ -104,10 +106,17 @@ function renderDetailContent(id) {
                 const toAcc   = tIn  ? accounts.find(a => a.id == tIn.accountId)  : null;
                 const fromName = fromAcc ? getAccountDisplayName(fromAcc) : '?';
                 const toName   = toAcc   ? getAccountDisplayName(toAcc)   : '?';
-                titleHtml = `<span style="font-size:0.83rem;font-weight:600;">${fromName}<span style="color:var(--bs-primary);margin:0 2px;">→</span>${toName}${getTxnBadge(t)}</span>`;
+                titleHtml = `<span>${_escHtml(fromName)} <span style="color:var(--app-primary);margin:0 2px;">→</span> ${_escHtml(toName)}${getTxnBadge(t)}</span>`;
                 const cleanDesc = tOut ? (tOut.desc || '') : (t.desc || '');
-                if (cleanDesc) subLine += ' · ' + cleanDesc;
+                if (cleanDesc) subLine += ' · ' + _escHtml(cleanDesc);
+                amountClass = 'is-transfer';
+                iconClass = 'bi-arrow-left-right';
+                iconColor = 'var(--app-transfer)';
             } else {
+                catName = t.items && t.items.length > 1 ? t.items[0].category : (t.category || '');
+                const meta = getCategoryIconByName(catName);
+                iconClass = meta.icon;
+                iconColor = meta.color;
                 const catDisplay = t.items && t.items.length > 1
                     ? t.items[0].category + '等' + (t.items.length - 1) + '项'
                     : (t.category || '');
@@ -116,41 +125,39 @@ function renderDetailContent(id) {
                     const allTags = t.items.map(it => it.tags).filter(Boolean);
                     const allDesc = t.items.map(it => it.desc).filter(Boolean);
                     tagsHtml = allTags.length
-                        ? `<span style="font-size:0.72rem;color:var(--bs-secondary);margin-left:4px;"><i class="bi bi-tag" style="font-size:0.62rem;"></i> ${allTags.join(' / ')}</span>`
+                        ? `<span class="tx-tag" style="font-size:0.68rem;color:var(--app-muted);margin-left:4px;"><i class="bi bi-tag" style="font-size:0.6rem;"></i> ${_escHtml(allTags.join(' / '))}</span>`
                         : '';
                     noteStr = allDesc.length ? allDesc.join(' / ') : '';
                 } else {
                     tagsHtml = t.tags
-                        ? `<span style="font-size:0.72rem;color:var(--bs-secondary);margin-left:4px;"><i class="bi bi-tag" style="font-size:0.62rem;"></i> ${t.tags}</span>`
+                        ? `<span class="tx-tag" style="font-size:0.68rem;color:var(--app-muted);margin-left:4px;"><i class="bi bi-tag" style="font-size:0.6rem;"></i> ${_escHtml(t.tags)}</span>`
                         : '';
                     noteStr = t.desc || '';
                 }
-                titleHtml = `<span style="font-weight:600;font-size:0.83rem;">${catDisplay}${tagsHtml}</span>`;
-                if (noteStr) subLine += ` <i class="bi bi-chat-left-text" style="font-size:0.62rem;"></i> ${noteStr}`;
+                titleHtml = `<span>${_escHtml(catDisplay)}${tagsHtml}</span>`;
+                if (noteStr) subLine += ` · ${_escHtml(noteStr)}`;
+                amountClass = (parseFloat(t.amount) || 0) >= 0 ? 'is-income' : 'is-expense';
             }
 
-            const amtSign = (!isTransfer && t.amount >= 0) ? '+' : '';
+            const amtSign = (!isTransfer && (parseFloat(t.amount) || 0) >= 0) ? '+' : '';
             const displayAmt = `${amtSign}${CURRENCY_SYMBOLS[acc.currency]}${formatAmount(Math.abs(t.amount), acc.currency)}`;
 
             const item = document.createElement('div');
-            item.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-bottom:1px solid var(--bs-border-color);background:var(--bs-body-bg);${canEdit ? 'cursor:pointer;' : ''}transition:background 0.15s;`;
+            item.className = 'ad-tx-row';
+            if (!canEdit) item.style.cursor = 'default';
             if (canEdit) {
-                item.addEventListener('mouseenter', () => item.style.background = 'rgba(var(--bs-primary-rgb),0.06)');
-                item.addEventListener('mouseleave', () => item.style.background = 'var(--bs-body-bg)');
                 item.addEventListener('click', () => {
                     openedFromDetail = true;
                     isTransfer ? openEditTransfer(t.id) : openEditTransaction(t.id);
                 });
             }
             item.innerHTML = `
-                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-                    <i class="bi ${iconClass}" style="font-size:0.95rem;color:${amtColor};flex-shrink:0;"></i>
-                    <div style="min-width:0;overflow:hidden;">
-                        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${titleHtml}${t.attachmentId ? ` <i class="bi bi-paperclip" style="font-size:0.7rem;color:var(--bs-secondary);"></i>` : ''}</div>
-                        <div style="font-size:0.72rem;color:var(--bs-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${subLine}</div>
-                    </div>
+                <span class="tx-row-icon" style="--cat-color:${iconColor}"><i class="bi ${iconClass}"></i></span>
+                <div class="ad-tx-main">
+                    <div class="ad-tx-title">${titleHtml}${t.attachmentId ? ` <i class="bi bi-paperclip" style="font-size:0.66rem;color:var(--app-muted);"></i>` : ''}</div>
+                    <div class="ad-tx-sub">${subLine}</div>
                 </div>
-                <div style="font-weight:700;font-size:0.88rem;color:${amtColor};margin-left:8px;white-space:nowrap;">${displayAmt}</div>`;
+                <div class="ad-tx-amt ${amountClass}">${displayAmt}</div>`;
             mobileContainer.appendChild(item);
         });
     }
@@ -165,7 +172,7 @@ function openAccountDetailTab(id) {
     if (input) input.value = '';
     if (btn)   btn.classList.remove('active');
     renderDetailContent(id);
-    switchTab('account-detail', null);
+    switchTab('account-detail', document.querySelector('.nav-link[onclick*=accounts]'));
     $('view-account-detail').scrollTop = 0;
 }
 

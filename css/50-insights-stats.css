@@ -8,7 +8,7 @@
     cursor: pointer; transition: color .15s, border-color .15s;
 }
 .insight-tab-btn.active {
-    color: var(--bs-primary); border-bottom-color: var(--bs-primary); font-weight: 600;
+    color: var(--app-link, var(--bs-primary)); border-bottom-color: var(--bs-primary); font-weight: 600;
 }
 /* 智能提醒内容卡片 */
 .insight-card {
@@ -25,14 +25,15 @@
     font-size: 0.85rem;
 }
 .insight-row:last-child { border-bottom: none; }
-.insight-badge-up   { color: #e74c3c; font-size: 0.78rem; }
-.insight-badge-down { color: #27ae60; font-size: 0.78rem; }
+.insight-badge-up   { color: var(--app-expense); font-size: 0.78rem; }
+.insight-badge-down { color: var(--app-income); font-size: 0.78rem; }
 .insight-badge-neu  { color: var(--bs-secondary-color); font-size: 0.78rem; }
 .insight-today-plan {
-    background: #fff3cd; border-radius: 8px; padding: 8px 12px;
-    font-size: 0.85rem; margin-bottom: 8px; border-left: 3px solid #f5a623;
+    background: var(--bs-warning-bg-subtle);
+    color: var(--app-text);
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 0.85rem; margin-bottom: 8px; border-left: 3px solid var(--app-transfer);
 }
-.dark-theme .insight-today-plan { background: #3d3112; }
 #trans-filter-panel {
     overflow: hidden;
     max-height: 0;
@@ -66,12 +67,12 @@
     margin-bottom: -2px;
     padding: 6px 18px;
     font-size: 0.9rem;
-    color: var(--bs-secondary);
+    color: var(--app-muted, var(--bs-secondary));
     cursor: pointer;
     transition: color .15s, border-color .15s;
 }
 .stats-sub-tab-btn.active {
-    color: var(--bs-primary);
+    color: var(--app-link, var(--bs-primary));
     border-bottom-color: var(--bs-primary);
     font-weight: 600;
 }
@@ -80,7 +81,7 @@
 
 /* ── 图表钻取底部抽屉 ── */
 #chart-drawer-backdrop {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    position: fixed; inset: 0; background: var(--app-overlay);
     z-index: 1055; opacity: 0; transition: opacity .25s;
     pointer-events: none;
 }
@@ -88,9 +89,10 @@
 #chart-drawer {
     position: fixed; left: 0; right: 0; bottom: 0;
     z-index: 1056;
-    background: var(--bs-body-bg);
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-radius: var(--app-radius-sheet) var(--app-radius-sheet) 0 0;
+    box-shadow: var(--app-shadow);
     max-height: 80vh;
     display: flex; flex-direction: column;
     transform: translateY(100%);
@@ -128,7 +130,7 @@
 #chart-drawer-body .drawer-table thead th {
     position: sticky;
     top: 0;
-    background: var(--bs-body-bg);
+    background: var(--app-surface);
     border-bottom: 2px solid var(--bs-border-color);
     padding: 8px 12px;
     text-align: left;

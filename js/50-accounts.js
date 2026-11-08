@@ -28,10 +28,11 @@ function renderAccounts() {
 
     const hiddenClass = amountsHidden ? 'amount-hidden' : '';
     $('net-worth-display').innerHTML = `
-        <div class="row text-center">
-            <div class="col-4">总资产: <b class="text-success ${hiddenClass}">¥${totalAssets.toFixed(2)}</b></div>
-            <div class="col-4">总负债: <b class="text-danger ${hiddenClass}">¥${Math.abs(totalLiabilities).toFixed(2)}</b></div>
-            <div class="col-4">净值: <b class="text-primary ${hiddenClass}">¥${(totalAssets + totalLiabilities).toFixed(2)}</b></div>
+        <div class="hero-eyebrow">净资产</div>
+        <div class="hero-big ${hiddenClass}">¥${(totalAssets + totalLiabilities).toFixed(2)}</div>
+        <div class="hero-split">
+            <span>总资产 <b class="${hiddenClass}">¥${totalAssets.toFixed(2)}</b></span>
+            <span>总负债 <b class="${hiddenClass}">¥${Math.abs(totalLiabilities).toFixed(2)}</b></span>
         </div>`;
 
     ['Asset', 'Liability', 'Receivable'].forEach(type => {
@@ -39,8 +40,10 @@ function renderAccounts() {
         const rawAccs = userAccounts.filter(a => (a.accountType || 'Asset') === type && !a.hidden);
         if (rawAccs.length === 0) return;
         const myTypeAccs = sortedUserAccounts(rawAccs);
-        const color = type === 'Liability' ? 'danger' : (type === 'Asset' ? 'success' : 'info');
-        container.innerHTML += `<h6 class="mt-3 mb-2 text-${color} border-bottom border-${color} pb-2">${type === 'Asset' ? '资产' : (type === 'Liability' ? '负债' : '应收')}</h6>`;
+        const accent = type === 'Liability' ? 'var(--app-expense)' : (type === 'Asset' ? 'var(--app-income)' : 'var(--app-transfer)');
+        const typeLabel = type === 'Asset' ? '资产' : (type === 'Liability' ? '负债' : '应收');
+        const typeIcon = type === 'Asset' ? 'bi-bank' : (type === 'Liability' ? 'bi-credit-card-2-front' : 'bi-hourglass-split');
+        container.innerHTML += `<h6 class="account-group-title" style="--group-color:${accent}">${typeLabel}</h6>`;
         const row = document.createElement('div');
         row.className = 'd-flex flex-wrap g-3 gap-3';
         row.dataset.accType = type;
@@ -54,16 +57,17 @@ function renderAccounts() {
                 ? `<span class="badge bg-secondary" style="font-size:0.6rem;font-weight:normal;" title="不计入总资产/总负债/净值汇总">不计入汇总</span>`
                 : '';
             col.innerHTML = `
-                <div class="card account-card p-3 shadow-sm d-flex flex-row align-items-center gap-1"
+                <div class="card account-card p-3 d-flex flex-row align-items-center gap-3"
                      data-id="${acc.id}" style="cursor:pointer;">
-                    <div class="flex-grow-1" onclick="openAccountDetail(${acc.id})">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div style="flex:1">
-                                <div class="fw-bold text-truncate">${acc.name} · <span class="fw-normal">${acc.currency}</span> ${excludeBadge}</div>
-                                ${acc.notes ? `<div class="small text-muted text-truncate" style="max-width:140px;" title="${acc.notes}">${acc.notes}</div>` : ''}
+                    <div class="account-card-icon"><i class="bi ${typeIcon}"></i></div>
+                    <div class="flex-grow-1" style="min-width:0;" onclick="openAccountDetail(${acc.id})">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div style="flex:1;min-width:0;">
+                                <div class="fw-bold text-truncate">${acc.name} <span class="fw-normal text-muted" style="font-size:0.72rem;">${acc.currency}</span> ${excludeBadge}</div>
+                                ${acc.notes ? `<div class="small text-muted text-truncate" title="${acc.notes}">${acc.notes}</div>` : ''}
                             </div>
-                            <div class="text-end">
-                                <h5 class="mb-0 ${balClass}">${CURRENCY_SYMBOLS[acc.currency]}${formatAmount(bal, acc.currency)}</h5>
+                            <div class="text-end" style="flex-shrink:0;">
+                                <div class="account-balance ${balClass}">${CURRENCY_SYMBOLS[acc.currency]}${formatAmount(bal, acc.currency)}</div>
                                 <small class="text-muted"><i class="bi bi-chevron-right"></i></small>
                             </div>
                         </div>
@@ -76,7 +80,7 @@ function renderAccounts() {
 
     const otherAccs = accounts.filter(a => a.ownerName !== currentUserName && !a.hidden);
     if (otherAccs.length > 0) {
-        otherContainer.innerHTML = `<h6 class="mt-4 mb-2 text-secondary border-bottom pb-2">其他用户的账户</h6>`;
+        otherContainer.innerHTML = `<h6 class="account-group-title" style="--group-color:var(--app-muted)">其他用户的账户</h6>`;
         const otherRow = document.createElement('div');
         otherRow.className = 'd-flex flex-wrap g-3 gap-3';
         // 按各用户自己的 accountOrder 排序

@@ -1,5 +1,5 @@
 /* 记一笔 · Service Worker
- * 与 index.html v5.0.3 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
+ * 与 index.html v5.0.4 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
  *
  * 策略：
  *  1. 应用外壳（index.html / css/*.css / js/*.js / manifest.json / 图标）：网络优先（3 秒超时），失败回退缓存
@@ -14,7 +14,7 @@
  *  页面收到提示后显示“有新版本，点击刷新”，用户点击时才 postMessage('SKIP_WAITING') 切换。
  *  这样用户正在填表时不会被打断。
  */
-const APP_VERSION = '5.0.3';
+const APP_VERSION = '5.0.4';
 const SHELL_CACHE = `jibi-shell-v${APP_VERSION}`;
 const CDN_CACHE = 'jibi-cdn-v2';   // CDN 资源带版本号，长期有效，不随 APP_VERSION 清理
 
@@ -30,6 +30,10 @@ const SHELL_URLS = [
   './css/40-transaction-form.css',
   './css/50-insights-stats.css',
   './css/60-widgets.css',
+  './css/themes/clean.css',
+  './css/themes/cute.css',
+  './css/themes/finance.css',
+  './css/70-app-skin.css',
   './js/boot-head.js',
   './js/10-config-state.js',
   './js/15-money-format.js',
@@ -54,6 +58,7 @@ const SHELL_URLS = [
   './js/78-backup-restore.js',
   './js/80-charts.js',
   './js/85-navigation-settings.js',
+  './js/86-theme-settings.js',
   './js/88-toast-syncbar.js',
   './js/90-settings.js',
   './js/92-planned.js',

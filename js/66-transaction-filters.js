@@ -174,5 +174,5 @@ function getTxnBadge(t) {
 }
 // 兼容旧调用
 function isNewTxn(t) { return getTxnBadge(t) !== ''; }
-const NEW_BADGE = '<em style="font-size:0.68rem;color:#fd7e14;font-style:italic;margin-left:4px;">新数据</em>';
-const UPDATED_BADGE = '<em style="font-size:0.68rem;color:#0d6efd;font-style:italic;margin-left:4px;">已更新</em>';
+const NEW_BADGE = '<em style="font-size:0.68rem;color:var(--app-transfer);font-style:italic;margin-left:4px;">新数据</em>';
+const UPDATED_BADGE = '<em style="font-size:0.68rem;color:var(--app-primary);font-style:italic;margin-left:4px;">已更新</em>';

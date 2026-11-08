@@ -33,7 +33,7 @@ function switchTab(t, el) {
             maybeShowInsight();
         });
     }
-    if (t === 'settings') { showSettingsMenu(); renderExchangeRateSettings(); initPasswordHint(); renderUserManagement(); }
+    if (t === 'settings') { showSettingsMenu(); renderExchangeRateSettings(); initPasswordHint(); renderUserManagement(); renderThemeSettings(); }
 }
 
 function renderSettingsUserCard() {
@@ -53,6 +53,7 @@ function showSettingsMenu() {
     $('settings-menu').style.display = 'block';
     $$('.settings-subpage').forEach(function(el) { el.classList.remove('active'); });
     renderSettingsUserCard();
+    renderThemeSettings();
 }
 function showSettingsSubpage(name) {
     $('settings-menu').style.display = 'none';

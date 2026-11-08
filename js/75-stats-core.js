@@ -201,9 +201,9 @@ function renderStats() {
     }
 
     const hiddenClass = amountsHidden ? 'amount-hidden' : '';
-    $('stat-income-display').className = `text-success ${hiddenClass}`;
-    $('stat-expense-display').className = `text-danger ${hiddenClass}`;
-    $('stat-net-display').className = `text-primary ${hiddenClass}`;
+    $('stat-income-display').className = `stat-number is-income ${hiddenClass}`;
+    $('stat-expense-display').className = `stat-number is-expense ${hiddenClass}`;
+    $('stat-net-display').className = `stat-number is-net ${hiddenClass}`;
     $('stat-income-display').innerText = formatAmount(inc, currentStatsFilter.currency);
     $('stat-expense-display').innerText = formatAmount(Math.abs(exp), currentStatsFilter.currency);
     $('stat-net-display').innerText = formatAmount(inc + exp, currentStatsFilter.currency);

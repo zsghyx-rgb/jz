@@ -1,10 +1,48 @@
-<!DOCTYPE html><html lang="zh-CN" data-bs-theme="dark"><head>
+<!DOCTYPE html><html lang="zh-CN" data-app-theme="clean" data-bs-theme="light"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title id="app-title">记一笔 v5.0.3</title>
+    <meta name="theme-color" content="#F6F7F9">
+    <!-- 主题启动脚本：必须最先执行，读取本机设置并在首次渲染前写好 html 属性，避免闪白/闪黑 -->
+    <script>
+    (function () {
+        var THEMES = ['clean', 'cute', 'finance'];
+        var MODES = ['auto', 'light', 'dark'];
+        var BG = {
+            clean:   { light: '#F6F7F9', dark: '#0F1115' },
+            cute:    { light: '#FFF7EC', dark: '#1E1712' },
+            finance: { light: '#F4F5F8', dark: '#0E1320' }
+        };
+        var theme, mode;
+        try {
+            theme = localStorage.getItem('APP_app_theme');
+            mode = localStorage.getItem('APP_color_mode');
+        } catch (e) {}
+        if (THEMES.indexOf(theme) < 0) theme = 'clean';
+        if (MODES.indexOf(mode) < 0) mode = 'auto';
+        var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+        var resolve = function () {
+            return mode === 'dark' || (mode === 'auto' && mq && mq.matches);
+        };
+        var paint = function () {
+            var dark = resolve();
+            var root = document.documentElement;
+            root.setAttribute('data-app-theme', theme);
+            root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+            window.__APP_THEME__ = { theme: theme, mode: mode, dark: dark };
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', dark ? BG[theme].dark : BG[theme].light);
+        };
+        paint();
+        if (mq) {
+            var onChange = function () { if (mode === 'auto') paint(); };
+            if (mq.addEventListener) mq.addEventListener('change', onChange);
+            else if (mq.addListener) mq.addListener(onChange);
+        }
+    })();
+    </script>
+    <title id="app-title">记一笔 v5.0.4</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d6efd">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24,6 +62,12 @@
     <link rel="stylesheet" href="css/40-transaction-form.css">
     <link rel="stylesheet" href="css/50-insights-stats.css">
     <link rel="stylesheet" href="css/60-widgets.css">
+    <!-- 三套主题（始终全部加载，由 html[data-app-theme] 决定哪一套生效） -->
+    <link rel="stylesheet" href="css/themes/clean.css">
+    <link rel="stylesheet" href="css/themes/cute.css">
+    <link rel="stylesheet" href="css/themes/finance.css">
+    <!-- 5.0.4 视觉结构层：首页分组列表、概览卡、底部导航中间加号 -->
+    <link rel="stylesheet" href="css/70-app-skin.css">
 </head>
 <body>
 
@@ -163,7 +207,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.0.3</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.0.4</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -181,6 +225,12 @@
             <li class="nav-item">
                 <button class="nav-link active" onclick="switchTab('transactions', this)">
                     <i class="bi bi-table"></i><span>交易</span>
+                </button>
+            </li>
+            <!-- 手机端底部导航中间的凸起“+”按钮；桌面端隐藏（各页头部已有新增入口） -->
+            <li class="nav-item nav-item-add">
+                <button type="button" class="nav-add-btn" onclick="openNewTransaction()" aria-label="新增交易" title="新增交易">
+                    <i class="bi bi-plus-lg"></i>
                 </button>
             </li>
             <li class="nav-item">
@@ -213,23 +263,20 @@
     </div>
 
 
-        <!-- 手机端悬浮操作按钮 (仅交易页显示) -->
-        <div id="mobile-fab-group">
-            <button class="fab-btn fab-btn-add" onclick="openNewTransaction()" title="新增交易">
-                <i class="bi bi-plus-lg"></i>
-            </button>
-        </div>
-
     <div class="main-content">
         <!-- 历史模式横幅 -->
         <div id="view-accounts" class="view-section">
-            <div class="page-sticky-header d-flex justify-content-between align-items-center pt-1">
-                <h4 class="mb-0">我的资产</h4>
-                <button class="btn btn-primary" onclick="openNewAccount()">
-                    <i class="bi bi-plus-lg"></i>
-                </button>
+            <div class="page-sticky-header pt-1">
+                <div class="page-title-row">
+                    <h4 class="page-title">我的资产</h4>
+                    <div class="page-tools">
+                        <button class="btn btn-sm btn-primary" onclick="openNewAccount()">
+                            <i class="bi bi-plus-lg"></i><span>新增账户</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="alert alert-light border shadow-sm mb-4 clickable-amount" onclick="toggleAmountVisibility()">
+            <div class="app-hero clickable-amount" onclick="toggleAmountVisibility()">
                 <div id="net-worth-display"></div>
             </div>
             <div id="account-list-container"></div>
@@ -237,27 +284,37 @@
         </div>
 
         <div id="view-account-detail" class="view-section">
-            <div id="account-detail-header" class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="switchTab('accounts', document.querySelector('.nav-link[onclick*=accounts]'))">
+            <div id="account-detail-header" class="d-flex align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2" style="min-width:0;">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="switchTab('accounts', document.querySelector('.nav-link[onclick*=accounts]'))" aria-label="返回账户列表">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <div>
-                        <div>
-                            <span style="font-size:1rem;font-weight:700;" id="ad-title"></span>
-                            <span class="text-muted ms-2" style="font-size:0.8rem;" id="ad-type"></span>
+                    <div style="min-width:0;">
+                        <div class="d-flex align-items-baseline gap-2" style="min-width:0;">
+                            <span class="ad-head-title text-truncate" id="ad-title"></span>
+                            <span class="text-muted" style="font-size:0.75rem;flex-shrink:0;" id="ad-type"></span>
                         </div>
-                        <div style="font-size:0.8rem;color:var(--bs-secondary);">
-                            <span id="ad-currency"></span><span class="mx-1">·</span><span id="ad-balance"></span>
+                        <div class="ad-head-meta">
+                            <span id="ad-currency"></span><span class="mx-1">·</span><span class="ad-balance" id="ad-balance"></span>
                         </div>
                     </div>
                 </div>
-                <div id="ad-action-btns" class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdSearch()" id="ad-search-btn" title="搜索"><i class="bi bi-search"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAccountFromDetail()" title="删除账户"><i class="bi bi-trash"></i></button>
-                    <button class="btn btn-sm btn-outline-warning" onclick="openNewTransferFromDetail()" title="新增转账"><i class="bi bi-arrow-left-right"></i></button>
-                    <button class="btn btn-sm btn-outline-success" onclick="openNewTransFromDetail()" title="新增收支"><i class="bi bi-plus-lg"></i></button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editAccountFromDetail()" title="编辑账户"><i class="bi bi-pencil"></i></button>
+                <div id="ad-action-btns" class="d-flex align-items-center gap-1 flex-shrink-0">
+                    <button class="btn btn-sm btn-primary" onclick="editAccountFromDetail()" title="编辑账户" aria-label="编辑账户">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <div class="dropdown">
+                        <button class="ad-more-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-three-dots"></i><span>更多</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><button type="button" class="dropdown-item" onclick="toggleAdSearch()" id="ad-search-btn"><i class="bi bi-search"></i> 搜索流水</button></li>
+                            <li><button type="button" class="dropdown-item" onclick="openNewTransFromDetail()"><i class="bi bi-plus-circle"></i> 新增收支</button></li>
+                            <li><button type="button" class="dropdown-item" onclick="openNewTransferFromDetail()"><i class="bi bi-arrow-left-right"></i> 新增转账</button></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button type="button" class="dropdown-item text-danger" onclick="deleteAccountFromDetail()"><i class="bi bi-trash"></i> 删除账户</button></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -274,7 +331,7 @@
             </div>
 
             <!-- 手机端卡片列表 -->
-            <div id="account-detail-view-list" class="list-group list-group-flush mt-2" style="border:1px solid var(--bs-border-color);border-radius:6px;"></div>
+            <div id="account-detail-view-list" class="list-group list-group-flush mt-2"></div>
             <div id="account-detail-view-empty" class="text-center text-muted py-4 d-none">
                 <i class="bi bi-inbox fs-2"></i><br>暂无交易记录
             </div>
@@ -282,18 +339,20 @@
 
         <div id="view-transactions" class="view-section active-view">
             <div class="page-sticky-header pt-1">
-                <!-- 标题行：标题 + 搜索 + 筛选 + 新增 -->
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <h4 class="mb-0 flex-grow-1">交易管理</h4>
-                    <button class="btn btn-sm btn-outline-secondary" id="batch-edit-toggle-btn" onclick="toggleBatchEditMode()" title="批量编辑">
-                        <i class="bi bi-check2-square"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" id="trans-filter-btn" onclick="toggleTransFilter()" title="搜索与筛选">
-                        <i class="bi bi-sliders"></i>
-                    </button>
-                    <button class="btn btn-sm btn-primary" onclick="openNewTransaction()" title="新增交易">
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
+                <!-- 标题行：标题 + 批量 + 筛选 + 新增 -->
+                <div class="page-title-row">
+                    <h4 class="page-title">交易</h4>
+                    <div class="page-tools">
+                        <button class="btn btn-sm btn-outline-secondary" id="batch-edit-toggle-btn" onclick="toggleBatchEditMode()" title="批量编辑" aria-label="批量编辑">
+                            <i class="bi bi-check2-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="trans-filter-btn" onclick="toggleTransFilter()" title="搜索与筛选" aria-label="搜索与筛选">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                        <button class="btn btn-sm btn-primary" id="trans-add-btn" onclick="openNewTransaction()" title="新增交易" aria-label="新增交易">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 批量编辑选择状态栏 -->
@@ -346,7 +405,24 @@
                 </div>
             </div>
 
-            <!-- 移动端卡片列表 -->
+            <!-- 首页概览：本月支出 / 收入 / 结余 / 预算进度（没有预算时不显示进度） -->
+            <div class="tx-hero clickable-amount" id="tx-hero" onclick="toggleAmountVisibility()" title="点击隐藏/显示金额">
+                <div class="tx-hero-label"><span id="tx-hero-month">本月</span> · 支出</div>
+                <div class="tx-hero-amount" id="tx-hero-expense">¥0.00</div>
+                <div class="tx-hero-meta">
+                    <span>收入 <b id="tx-hero-income">¥0.00</b></span>
+                    <span>结余 <b id="tx-hero-net">¥0.00</b></span>
+                </div>
+                <div class="tx-hero-budget" id="tx-hero-budget" style="display:none;">
+                    <div class="tx-hero-budget-head">
+                        <span id="tx-hero-budget-label">本月预算</span>
+                        <span id="tx-hero-budget-text"></span>
+                    </div>
+                    <div class="tx-hero-budget-bar"><i id="tx-hero-budget-fill" style="width:0%"></i></div>
+                </div>
+            </div>
+
+            <!-- 交易列表（按日期分组，渲染在 JS 中） -->
             <div id="mobile-transaction-list">
                 <div id="mobile-transaction-cards"></div>
                 <div id="mobile-load-more-container" class="text-center py-3 d-none">
@@ -357,9 +433,21 @@
 
         <div id="view-stats" class="view-section">
             <div class="page-sticky-header pt-1">
-                <!-- 标题行：月导航居中 + 筛选图标 -->
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="flex-grow-1"></span>
+                <!-- 标题行：标题 + 筛选 / 智能提醒 -->
+                <div class="page-title-row">
+                    <h4 class="page-title">统计</h4>
+                    <div class="page-tools">
+                        <button class="btn btn-sm btn-outline-secondary flex-shrink-0" id="stats-filter-btn" onclick="toggleStatsFilter()" title="筛选" aria-label="筛选">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary flex-shrink-0" id="insight-manual-btn" onclick="openInsightDrawer(true)" title="智能提醒" aria-label="智能提醒" style="position:relative;">
+                            <i class="bi bi-lightbulb"></i>
+                            <span id="insight-badge" style="display:none;position:absolute;top:2px;right:2px;width:7px;height:7px;background:var(--app-expense);border-radius:50%;"></span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 月导航 -->
+                <div class="d-flex justify-content-center mb-1">
                     <div class="d-flex align-items-center flex-shrink-0" id="stats-month-nav">
                         <button class="btn btn-sm btn-outline-secondary px-3" id="stats-prev-month-btn"
                                 onclick="navigateStatsMonth(-1)" title="上月">&#8249;</button>
@@ -369,14 +457,6 @@
                         <button class="btn btn-sm btn-outline-secondary px-3" id="stats-next-month-btn"
                                 onclick="navigateStatsMonth(1)" title="下月">&#8250;</button>
                     </div>
-                    <span class="flex-grow-1"></span>
-                    <button class="btn btn-sm btn-outline-secondary flex-shrink-0" id="stats-filter-btn" onclick="toggleStatsFilter()" title="筛选">
-                        <i class="bi bi-sliders"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary flex-shrink-0" id="insight-manual-btn" onclick="openInsightDrawer(true)" title="智能提醒" style="position:relative;">
-                        <i class="bi bi-lightbulb"></i>
-                        <span id="insight-badge" style="display:none;position:absolute;top:2px;right:2px;width:7px;height:7px;background:#f04;border-radius:50%;"></span>
-                    </button>
                 </div>
                 <!-- 筛选展开面板（三行） -->
                 <div id="stats-filter-panel">
@@ -425,11 +505,20 @@
 
             <!-- 概览子页 -->
             <div id="stats-pane-overview" class="stats-sub-pane active">
-                <div class="alert alert-light border shadow-sm mb-4 clickable-amount" onclick="toggleAmountVisibility()">
+                <div class="stats-hero clickable-amount" onclick="toggleAmountVisibility()">
                     <div class="row text-center">
-                        <div class="col-4">期间收入: <b class="text-success" id="stat-income-display">0.00</b></div>
-                        <div class="col-4">期间支出: <b class="text-danger" id="stat-expense-display">0.00</b></div>
-                        <div class="col-4">期间结余: <b class="text-primary" id="stat-net-display">0.00</b></div>
+                        <div class="col-4">
+                            <div class="stat-label">收入</div>
+                            <span class="stat-number is-income" id="stat-income-display">0.00</span>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-label">支出</div>
+                            <span class="stat-number is-expense" id="stat-expense-display">0.00</span>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-label">结余</div>
+                            <span class="stat-number is-net" id="stat-net-display">0.00</span>
+                        </div>
                     </div>
                 </div>
                 <div class="row g-3" id="charts-container">
@@ -514,7 +603,9 @@
 
         <div id="view-settings" class="view-section">
             <div class="page-sticky-header pt-1">
-                <h4 class="mb-0">系统设置</h4>
+                <div class="page-title-row">
+                    <h4 class="page-title">系统设置</h4>
+                </div>
             </div>
 
             <!-- Settings Menu -->
@@ -527,6 +618,43 @@
                         <div class="settings-user-sub" id="settings-user-sub">在线模式</div>
                     </div>
                     <i class="bi bi-chevron-right"></i>
+                </div>
+
+                <!-- 5.0.4 新增：主题风格 + 外观（仅保存在本机，不写入加密数据、不参与同步） -->
+                <div class="settings-section-title">外观</div>
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">主题风格</span>
+                        <span class="appearance-block-hint">切换后立即生效</span>
+                    </div>
+                    <div class="theme-pick-grid" id="theme-pick-grid">
+                        <button type="button" class="theme-pick" data-theme="clean" onclick="setAppTheme('clean')" aria-label="简洁清爽主题">
+                            <span class="theme-swatch theme-swatch-clean"><span></span><span></span><span></span><span></span></span>
+                            <span class="theme-pick-name">简洁清爽</span>
+                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
+                        </button>
+                        <button type="button" class="theme-pick" data-theme="cute" onclick="setAppTheme('cute')" aria-label="可爱活泼主题">
+                            <span class="theme-swatch theme-swatch-cute"><span></span><span></span><span></span><span></span></span>
+                            <span class="theme-pick-name">可爱活泼</span>
+                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
+                        </button>
+                        <button type="button" class="theme-pick" data-theme="finance" onclick="setAppTheme('finance')" aria-label="深色金融主题">
+                            <span class="theme-swatch theme-swatch-finance"><span></span><span></span><span></span><span></span></span>
+                            <span class="theme-pick-name">深色金融</span>
+                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">深浅模式</span>
+                        <span class="appearance-block-hint">跟随系统时随手机深浅色切换</span>
+                    </div>
+                    <div class="appearance-seg" id="appearance-seg" role="group" aria-label="外观模式">
+                        <button type="button" data-mode="auto" onclick="setColorMode('auto')">跟随系统</button>
+                        <button type="button" data-mode="light" onclick="setColorMode('light')">浅色</button>
+                        <button type="button" data-mode="dark" onclick="setColorMode('dark')">深色</button>
+                    </div>
                 </div>
 
                 <div class="settings-section-title">记账</div>
@@ -761,10 +889,10 @@
                                 <button class="btn btn-success" onclick="exportJsonData()">
                                     <i class="bi bi-download"></i> 导出 JSON
                                 </button>
-                                <button class="btn btn-info text-white" onclick="exportTransactionCsv()">
+                                <button class="btn btn-info" onclick="exportTransactionCsv()">
                                     <i class="bi bi-file-earmark-spreadsheet"></i> 导出交易CSV
                                 </button>
-                                <button class="btn btn-info text-white" onclick="exportTransferCsv()">
+                                <button class="btn btn-info" onclick="exportTransferCsv()">
                                     <i class="bi bi-file-earmark-spreadsheet"></i> 导出转账CSV
                                 </button>
                             </div>
@@ -834,7 +962,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.0.3</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.0.4</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -1369,6 +1497,7 @@
 <script src="js/78-backup-restore.js"></script>
 <script src="js/80-charts.js"></script>
 <script src="js/85-navigation-settings.js"></script>
+<script src="js/86-theme-settings.js"></script>
 <script src="js/88-toast-syncbar.js"></script>
 <script src="js/90-settings.js"></script>
 <script src="js/92-planned.js"></script>
@@ -1410,7 +1539,7 @@
 
     <!-- 顶栏 -->
     <div style="display:flex;align-items:center;gap:8px;padding:14px 16px 0;flex-shrink:0;">
-        <i class="bi bi-lightbulb-fill" style="font-size:1.1rem;color:#f5a623;"></i>
+        <i class="bi bi-lightbulb-fill" style="font-size:1.1rem;color:var(--app-transfer);"></i>
         <span style="font-weight:600;font-size:1rem;flex:1;">智能提醒</span>
         <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="closeInsightDrawer()"><i class="bi bi-x-lg"></i></button>
     </div>

@@ -389,8 +389,8 @@ function _renderAnomalies() {
 
     anomalies.sort((a, b) => b.amt - a.amt);
 
-    let html = `<div class="insight-card" style="border-left:3px solid #e74c3c;">
-        <div class="insight-card-title" style="color:#e74c3c;">消费提醒</div>`;
+    let html = `<div class="insight-card" style="border-left:3px solid var(--app-expense);">
+        <div class="insight-card-title" style="color:var(--app-expense);">消费提醒</div>`;
 
     anomalies.slice(0, 5).forEach(({ cat, amt, type, desc }) => {
         const icon = type === 'new' ? '🆕' : '🔺';
@@ -472,7 +472,7 @@ function _renderMonthly() {
         </div>
         <div class="insight-row">
             <span>收支${netLast >= 0 ? '结余' : '超支'}</span>
-            <span style="font-weight:600;color:${netLast >= 0 ? '#27ae60' : '#e74c3c'};">
+            <span style="font-weight:600;color:${netLast >= 0 ? 'var(--app-income)' : 'var(--app-expense)'};">
                 ${netLast >= 0 ? '+' : ''}${_fmtC(netLast)}
             </span>
         </div>
@@ -553,7 +553,7 @@ function _renderYearlyTrend() {
     vals.forEach((v, i) => {
         const pct    = maxVal > 0 ? (v / maxVal * 100) : 0;
         const isMax  = i === maxIdx && v > 0;
-        const barClr = isMax ? '#e74c3c' : 'var(--bs-primary)';
+        const barClr = isMax ? 'var(--app-expense)' : 'var(--app-primary)';
         html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
             <div style="width:100%;background:${barClr};border-radius:3px 3px 0 0;height:${Math.max(pct*0.72,2)}px;opacity:0.85;"></div>
         </div>`;
@@ -563,7 +563,7 @@ function _renderYearlyTrend() {
         <div style="display:flex;gap:5px;">`;
     vals.forEach((v, i) => {
         const isMax = i === maxIdx && v > 0;
-        html += `<div style="flex:1;text-align:center;font-size:0.68rem;color:${isMax?'#e74c3c':'var(--bs-secondary-color)'};">
+        html += `<div style="flex:1;text-align:center;font-size:0.68rem;color:${isMax?'var(--app-expense)':'var(--bs-secondary-color)'};">
             ${months[i].label}
         </div>`;
     });

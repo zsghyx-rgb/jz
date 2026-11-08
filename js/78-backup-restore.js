@@ -117,7 +117,7 @@ async function openBackupCompare(fileName, dateStr) {
                 <td style="width:72px;padding:5px 6px;max-width:72px;overflow:hidden;text-overflow:ellipsis;" title="${cat}">${cat}</td>
                 <td style="width:88px;padding:5px 6px;max-width:88px;overflow:hidden;text-overflow:ellipsis;font-weight:bold;" class="${t.amount < 0 ? 'text-danger' : 'text-success'}" title="${sym}${Math.abs(t.amount)}">${sym}${Math.abs(t.amount)}</td>
                 <td style="width:100px;padding:5px 6px;max-width:100px;overflow:hidden;text-overflow:ellipsis;color:var(--bs-secondary);" title="${t.desc || ''}">${t.desc || ''}</td>
-                <td style="width:80px;padding:5px 6px;max-width:80px;overflow:hidden;text-overflow:ellipsis;" title="${t.tags || ''}">${t.tags ? `<span class="badge bg-light text-dark border">${t.tags}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td style="width:80px;padding:5px 6px;max-width:80px;overflow:hidden;text-overflow:ellipsis;" title="${t.tags || ''}">${t.tags ? `<span class="badge bg-body-tertiary text-body border">${t.tags}</span>` : '<span class="text-muted">—</span>'}</td>
                 <td style="width:90px;padding:5px 6px;max-width:90px;overflow:hidden;text-overflow:ellipsis;color:var(--bs-secondary);" title="${accName}">${accName}</td>
                 <td style="width:70px;padding:5px 6px;max-width:70px;overflow:hidden;text-overflow:ellipsis;color:var(--bs-secondary);" title="${t._user}">${t._user}</td>
             </tr>`;
@@ -163,7 +163,7 @@ async function openBackupCompare(fileName, dateStr) {
         <div class="row g-3 mb-3">
             <div class="col-6">
                 <div class="card border-secondary h-100">
-                    <div class="card-header py-1 bg-secondary text-white text-center small fw-bold">备份（${dateStr}）</div>
+                    <div class="card-header py-1 text-center small fw-bold" style="background:var(--app-surface-2);color:var(--app-text);">备份（${dateStr}）</div>
                     <div class="card-body py-2 text-center">
                         <div class="fs-4 fw-bold">${bak.txCount}</div>
                         <div class="text-muted small">笔交易</div>
@@ -173,7 +173,7 @@ async function openBackupCompare(fileName, dateStr) {
             </div>
             <div class="col-6">
                 <div class="card border-primary h-100">
-                    <div class="card-header py-1 bg-primary text-white text-center small fw-bold">当前数据</div>
+                    <div class="card-header py-1 text-center small fw-bold" style="background:var(--app-primary);color:var(--app-on-primary);">当前数据</div>
                     <div class="card-body py-2 text-center">
                         <div class="fs-4 fw-bold">${cur.txCount}</div>
                         <div class="text-muted small">笔交易</div>
