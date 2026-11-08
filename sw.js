@@ -1,20 +1,20 @@
 /* 记一笔 · Service Worker
- * 与 index.html v3.11.0 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
+ * 与 index.html v5.0.3 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
  *
  * 策略：
- *  1. 应用外壳（index.html / manifest.json / 图标）：网络优先（3 秒超时），失败回退缓存
+ *  1. 应用外壳（index.html / css/*.css / js/*.js / manifest.json / 图标）：网络优先（3 秒超时），失败回退缓存
  *     → 联网时总能拿到最新版，断网也能打开
  *  2. CDN（Bootstrap / Bootstrap Icons / CryptoJS / Chart.js）：全部使用固定版本号，
  *     路径里带版本号 → 内容永不变化 → 缓存优先，离线可用、也不会某天被上游改坏
  *  3. 数据请求一律不拦截、不缓存：Google Apps Script / Google Drive 附件等都直接走网络
- *     （账目数据是加密文件/密文行，同步状态由 App 自己管理，不能被 SW 缓存）
+ *     （账目数据是 Google 表格中的加密密文行，同步状态由 App 自己管理，不能被 SW 缓存）
  *
  * 版本更新：
  *  install 里不再自动 skipWaiting。新版本会停在 waiting 状态，
  *  页面收到提示后显示“有新版本，点击刷新”，用户点击时才 postMessage('SKIP_WAITING') 切换。
  *  这样用户正在填表时不会被打断。
  */
-const APP_VERSION = '3.11.0';
+const APP_VERSION = '5.0.3';
 const SHELL_CACHE = `jibi-shell-v${APP_VERSION}`;
 const CDN_CACHE = 'jibi-cdn-v2';   // CDN 资源带版本号，长期有效，不随 APP_VERSION 清理
 
@@ -23,6 +23,46 @@ const SHELL_URLS = [
   './index.html',
   './manifest.json',
   './icon-192.png',
+  // 拆分后的样式与脚本（新增/改名文件时必须同步这里，并升级 APP_VERSION）
+  './css/10-base-layout.css',
+  './css/20-feedback-sync.css',
+  './css/30-transactions.css',
+  './css/40-transaction-form.css',
+  './css/50-insights-stats.css',
+  './css/60-widgets.css',
+  './js/boot-head.js',
+  './js/10-config-state.js',
+  './js/15-money-format.js',
+  './js/20-cloud-sync.js',
+  './js/25-login-settings.js',
+  './js/30-auth-session.js',
+  './js/35-ui-feedback.js',
+  './js/40-draft-drive-sync.js',
+  './js/45-import-export.js',
+  './js/50-accounts.js',
+  './js/52-account-detail.js',
+  './js/55-transaction-modals.js',
+  './js/58-split-items.js',
+  './js/60-budget.js',
+  './js/62-category-icons.js',
+  './js/64-transaction-submit.js',
+  './js/66-transaction-filters.js',
+  './js/67-batch-edit.js',
+  './js/68-transaction-list.js',
+  './js/70-attachments-hints.js',
+  './js/75-stats-core.js',
+  './js/78-backup-restore.js',
+  './js/80-charts.js',
+  './js/85-navigation-settings.js',
+  './js/88-toast-syncbar.js',
+  './js/90-settings.js',
+  './js/92-planned.js',
+  './js/94-user-management.js',
+  './js/96-tag-suggest.js',
+  './js/98-insights.js',
+  './js/99-account-select.js',
+  './js/99-html-escape.js',
+  './js/sw-register.js',
 ];
 
 /* 固定版本：任何一项都不要再写“不指定版本”的地址（以前 chart.js 就是这样，
