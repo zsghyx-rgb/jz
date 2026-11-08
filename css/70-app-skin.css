@@ -270,8 +270,8 @@ a { color: var(--app-link, var(--app-primary)); }
 /* ── 首页：本月概览 ──────────────────────────────────────── */
 .tx-hero {
     position: relative;
-    margin: 12px 0 8px;
-    padding: 20px 22px 18px;
+    margin: 10px 0 6px;
+    padding: 16px 20px 14px;
     background: var(--app-hero-bg);
     color: var(--app-hero-text);
     border-radius: var(--app-radius-card, 22px);
@@ -290,7 +290,7 @@ a { color: var(--app-link, var(--app-primary)); }
 }
 
 .tx-hero-amount {
-    margin-top: 4px;
+    margin-top: 2px;
     font-size: clamp(2rem, 6vw, 2.75rem);
     line-height: 1.05;
     font-weight: 800;
@@ -302,7 +302,7 @@ a { color: var(--app-link, var(--app-primary)); }
     display: flex;
     flex-wrap: wrap;
     gap: 8px 22px;
-    margin-top: 10px;
+    margin-top: 8px;
     font-size: 0.78rem;
     color: var(--app-hero-muted);
 }
@@ -314,8 +314,8 @@ a { color: var(--app-link, var(--app-primary)); }
 }
 
 .tx-hero-budget {
-    margin-top: 16px;
-    padding-top: 12px;
+    margin-top: 12px;
+    padding-top: 10px;
     border-top: 1px solid color-mix(in srgb, var(--app-hero-muted) 28%, transparent);
 }
 
@@ -325,7 +325,7 @@ a { color: var(--app-link, var(--app-primary)); }
     gap: 12px;
     font-size: 0.74rem;
     color: var(--app-hero-muted);
-    margin-bottom: 7px;
+    margin-bottom: 6px;
 }
 
 .tx-hero-budget-bar {
@@ -988,7 +988,7 @@ a { color: var(--app-link, var(--app-primary)); }
 
     .page-title { font-size: 1.2rem; }
 
-    .tx-hero { margin: 10px 0 6px; padding: 17px 18px 15px; }
+    .tx-hero { margin: 10px 0 6px; padding: 14px 18px 12px; }
 
     .tx-hero-amount { font-size: clamp(1.85rem, 9vw, 2.4rem); }
 

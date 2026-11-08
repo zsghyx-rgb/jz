@@ -22,11 +22,22 @@ function switchStatsTab(tab) {
 
 function navigateStatsMonth(delta) {
     const now = new Date();
+    const isYear = statsNavMode === 'year';
+
     if (delta === 0) {
-        // 点击中间标签：回到本月
-        statsNavYear  = now.getFullYear();
-        statsNavMonth = now.getMonth();
+        // 点击中间标签：回到本月 / 本年
+        if (isYear) {
+            statsNavYear = now.getFullYear();
+        } else {
+            statsNavYear  = now.getFullYear();
+            statsNavMonth = now.getMonth();
+        }
+    } else if (isYear) {
+        // 年模式：前后箭头切换上一年 / 下一年，不允许超过今年
+        statsNavYear += delta;
+        if (statsNavYear > now.getFullYear()) statsNavYear = now.getFullYear();
     } else {
+        // 月模式：前后箭头切换上一个月 / 下一个月
         statsNavMonth += delta;
         if (statsNavMonth > 11) { statsNavMonth = 0; statsNavYear++; }
         if (statsNavMonth < 0)  { statsNavMonth = 11; statsNavYear--; }
@@ -37,23 +48,30 @@ function navigateStatsMonth(delta) {
             statsNavMonth = now.getMonth();
         }
     }
-    statsNavMode = 'month';
+    statsNavMode = isYear ? 'year' : 'month';
     // 关闭自定义面板
     const panel = $('stats-custom-date-panel');
     if (panel) panel.style.setProperty('display', 'none', 'important');
     const toggle = $('stats-custom-toggle');
     if (toggle) toggle.classList.remove('active');
-    // 计算该月首末日
-    const start = new Date(statsNavYear, statsNavMonth, 1);
-    const end   = new Date(statsNavYear, statsNavMonth + 1, 0);
+    // 计算该月 / 该年的首末日
+    let start, end;
+    if (statsNavMode === 'year') {
+        start = new Date(statsNavYear, 0, 1);
+        end   = new Date(statsNavYear, 11, 31);
+    } else {
+        start = new Date(statsNavYear, statsNavMonth, 1);
+        end   = new Date(statsNavYear, statsNavMonth + 1, 0);
+    }
     const startStr = formatLocal(start);
     const endStr   = formatLocal(end);
     $('stats-start-date').value = startStr;
     $('stats-end-date').value   = endStr;
     currentStatsFilter.startDate = startStr;
     currentStatsFilter.endDate   = endStr;
-    // 取消快速按钮 active 状态
-    $$('#quick-stats-filter-group-1 button').forEach(b => b.classList.remove('active'));
+    // 高亮当前模式对应的快捷按钮
+    $$('#quick-stats-filter-group-1 button').forEach(b =>
+        b.classList.toggle('active', b.dataset.range === statsNavMode));
     updateStatsNavUI();
     renderStats();
 }
@@ -61,21 +79,41 @@ function navigateStatsMonth(delta) {
 function updateStatsNavUI() {
     const label   = $('stats-month-label');
     const nextBtn = $('stats-next-month-btn');
+    const prevBtn = $('stats-prev-month-btn');
     if (!label) return;
     const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    const now = new Date();
+    const atCurrentMonth = statsNavYear === now.getFullYear() && statsNavMonth === now.getMonth();
+    const atCurrentYear  = statsNavYear === now.getFullYear();
+
     if (statsNavMode === 'month') {
-        label.textContent = `${statsNavYear}年${monthNames[statsNavMonth]}`;
+        // 本月显示“本月”，切到其他月份显示具体年月
+        label.textContent = atCurrentMonth ? '本月' : `${statsNavYear}年${monthNames[statsNavMonth]}`;
         label.title = '点击回到本月';
+        label.classList.remove('text-muted');
+    } else if (statsNavMode === 'year') {
+        // 今年显示“本年”，切到其他年份显示具体年份
+        label.textContent = atCurrentYear ? '本年' : `${statsNavYear}年`;
+        label.title = '点击回到本年';
         label.classList.remove('text-muted');
     } else {
         label.textContent = '—';
         label.title = '';
         label.classList.add('text-muted');
     }
-    // 当月时禁用"下月"按钮
-    const now = new Date();
-    const atCurrentMonth = statsNavYear === now.getFullYear() && statsNavMonth === now.getMonth();
-    if (nextBtn) nextBtn.disabled = (statsNavMode === 'month' && atCurrentMonth);
+    if (prevBtn) prevBtn.title = statsNavMode === 'year' ? '上一年' : '上月';
+    if (nextBtn) {
+        nextBtn.title = statsNavMode === 'year' ? '下一年' : '下月';
+        // 已到当前月 / 当前年时禁用“下一个”
+        nextBtn.disabled =
+            (statsNavMode === 'month' && atCurrentMonth) ||
+            (statsNavMode === 'year'  && atCurrentYear);
+    }
+    // 月 / 年模式下同步快捷按钮高亮（登录初始化时也会走到这里）
+    if (statsNavMode === 'month' || statsNavMode === 'year') {
+        $$('#quick-stats-filter-group-1 button').forEach(b =>
+            b.classList.toggle('active', b.dataset.range === statsNavMode));
+    }
 }
 
 function toggleStatsCustomDate() {
@@ -105,6 +143,34 @@ function applyStatsFilter() {
 
 function quickStatsDateFilter(p) {
     const today = new Date();
+
+    // 本月 / 本年：进入可前后切换的“月 / 年”模式
+    if (p === 'month' || p === 'year') {
+        statsNavYear  = today.getFullYear();
+        statsNavMonth = today.getMonth();
+        statsNavMode  = p;
+        const start = p === 'month'
+            ? new Date(statsNavYear, statsNavMonth, 1)
+            : new Date(statsNavYear, 0, 1);
+        const end = p === 'month'
+            ? new Date(statsNavYear, statsNavMonth + 1, 0)
+            : new Date(statsNavYear, 11, 31);
+        $('stats-start-date').value = formatLocal(start);
+        $('stats-end-date').value   = formatLocal(end);
+        currentStatsFilter.startDate = $('stats-start-date').value;
+        currentStatsFilter.endDate   = $('stats-end-date').value;
+        $$('#quick-stats-filter-group-1 button').forEach(b =>
+            b.classList.toggle('active', b.dataset.range === p));
+        // 关闭自定义面板
+        const panel = $('stats-custom-date-panel');
+        if (panel) panel.style.setProperty('display', 'none', 'important');
+        const toggle = $('stats-custom-toggle');
+        if (toggle) toggle.classList.remove('active');
+        updateStatsNavUI();
+        renderStats();
+        return;
+    }
+
     let start = '', end = '';
     if      (p === '30days')  { start = new Date(today); start.setDate(today.getDate() - 30); end = today; }
     else if (p === '3months') { start = new Date(today); start.setMonth(today.getMonth() - 3); end = today; }
