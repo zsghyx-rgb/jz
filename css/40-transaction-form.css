@@ -364,52 +364,67 @@
     padding: 0;
 }
 
-/* 转账：账户流向卡片 */
-.transfer-flow-row { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
-.transfer-acc-card { flex: 1; position: relative; min-width: 0; }
+/* 转账：账户流向（转出 / 转入上下两行，右侧一个互换按钮） */
+.transfer-flow-row { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 4px 0 10px; }
+.transfer-acc-card { position: relative; min-width: 0; width: 100%; }
 .transfer-acc-trigger {
-    display: flex; flex-direction: column; gap: 2px;
+    display: flex; flex-direction: row; align-items: center; gap: 10px;
     background: var(--bs-tertiary-bg);
     border-radius: 12px;
-    padding: 10px;
+    padding: 12px 14px;
+    min-height: 50px;
     cursor: pointer;
     border: 1px solid transparent;
 }
 .transfer-acc-trigger.open { border-color: var(--bs-primary); }
-.transfer-acc-label { font-size: 0.68rem; color: var(--bs-secondary-color); }
-.transfer-acc-trigger i { font-size: 1rem; color: var(--bs-primary); margin: 2px 0; }
+.transfer-acc-label { flex-shrink: 0; width: 2.2em; font-size: 0.78rem; font-weight: 600; color: var(--bs-secondary-color); }
+.transfer-acc-trigger i { flex-shrink: 0; font-size: 1.1rem; color: var(--bs-primary); }
 .transfer-acc-trigger .acc-trigger-text {
-    font-size: 0.82rem; font-weight: 600;
+    flex: 1; min-width: 0;
+    font-size: 0.95rem; font-weight: 600;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .transfer-flow-arrow {
-    flex-shrink: 0; color: var(--bs-primary); font-size: 1.1rem;
-    background: none; border: none; padding: 6px; cursor: pointer;
+    position: absolute; right: 46px; top: 50%; transform: translateY(calc(-50% - 3px)); z-index: 3;
+    color: var(--bs-primary); font-size: 1rem;
+    background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); padding: 0; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 50%; width: 32px; height: 32px;
+    border-radius: 50%; width: 34px; height: 34px;
 }
 .transfer-flow-arrow:active { background: rgba(var(--app-primary-rgb), 0.12); }
 
-/* 转账：双金额输入（系统键盘） */
-.transfer-amount-row { display: flex; gap: 8px; margin-bottom: 2px; }
-.transfer-amount-field {
-    flex: 1;
-    border: 1px solid var(--bs-border-color);
-    background: var(--bs-tertiary-bg);
-    border-radius: 10px;
-    padding: 6px 6px 8px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    min-height: 54px;
-}
-.transfer-amount-field .amt-label { font-size: 0.68rem; color: var(--bs-secondary-color); }
+/* 转账：金额（一个大数字；跨币种时下方多一行转入金额） */
+.transfer-main-amount { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 2px; }
+.transfer-main-amount .amt-label, .transfer-in-head .amt-label { font-size: 0.72rem; color: var(--bs-secondary-color); margin: 0; }
 .transfer-amount-input-row { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; }
-.transfer-amount-field .amount-currency { font-size: 1.1rem; flex-shrink: 0; }
-.transfer-amount-input {
-    font-size: 1.3rem;
-    max-width: none;
+.tm-transfer-amount-card .transfer-main-amount .amount-currency { font-size: 1.6rem; flex-shrink: 0; }
+.tm-transfer-amount-card .transfer-amount-input {
+    font-size: 2.1rem; font-weight: 700;
+    width: 100%; max-width: 260px;
     padding: 2px 0 0;
     text-align: center;
 }
+.transfer-in-wrap { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--bs-border-color); }
+.transfer-in-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+.transfer-rate-hint { font-size: 0.72rem; color: var(--bs-secondary-color); }
+.transfer-rate-hint a { color: var(--bs-primary); font-weight: 600; text-decoration: none; margin-left: 4px; }
+.tm-transfer-amount-card .transfer-in-wrap .amount-currency { font-size: 1.2rem; flex-shrink: 0; }
+.tm-transfer-amount-card .transfer-in-wrap .transfer-amount-input { font-size: 1.5rem; font-weight: 600; }
+
+/* 只读查看（收款人看他人转账）：隐藏互换按钮和“清除”，避免看起来可操作 */
+.view-only .transfer-flow-arrow, .view-only .transfer-fee-clear { display: none; }
+
+/* 转账：手续费（折叠行） */
+.tm-icon-orange { background: rgba(var(--app-warning-rgb), 0.15); color: var(--app-warning); }
+.transfer-fee-summary { flex-shrink: 0; font-size: 0.88rem; color: var(--bs-secondary-color); margin-right: 4px; }
+.transfer-fee-summary.has-fee { color: var(--app-expense); font-weight: 600; }
+.transfer-fee-body { padding: 2px 14px 12px; }
+.transfer-fee-input-row { display: flex; align-items: center; gap: 8px; background: var(--bs-tertiary-bg); border-radius: 12px; padding: 8px 12px; }
+.transfer-fee-input-row .amount-currency { font-size: 1.1rem; flex-shrink: 0; }
+.transfer-fee-input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font-size: 1.15rem; font-weight: 600; color: var(--bs-body-color); }
+.transfer-fee-clear { flex-shrink: 0; border: 0; background: none; color: var(--bs-secondary-color); font-size: 0.8rem; padding: 4px 6px; }
+.transfer-fee-note { margin-top: 6px; font-size: 0.72rem; color: var(--bs-secondary-color); }
+.transfer-total-hint { margin: 2px 6px 0; text-align: center; font-size: 0.82rem; color: var(--bs-secondary-color); }
 
 /* 只读查看模式：禁用新组件的交互 */
 .trans-modal-v2.view-only .cat-grid-item,
@@ -456,7 +471,6 @@
 }
 .tm-amount-card.amt-expense .amount-input-v2 { color: var(--app-expense); }
 .tm-amount-card.amt-income .amount-input-v2 { color: var(--app-income); }
-.tm-transfer-amount-card .transfer-amount-row { margin-bottom: 0; }
 
 /* 行式卡片（账户/日期/备注） */
 .tm-row-card { padding: 0 12px; }
@@ -562,3 +576,66 @@
    让分隔线贴近按钮；额外的留白空间改由 .trans-scroll-area 的底部内边距承担，
    这样空白会留在"图片区和分隔线之间"，而不是"分隔线和按钮之间" */
 .trans-amount-bar.tm-footer-bar { padding-top: 10px; }
+
+/* ═══════════ 5.1.1：新增/编辑收支 —— 大金额、数字键盘、日期快捷、保存并再记、备注联想 ═══════════ */
+.tm-amount-card.tm-amount-big { padding: 14px 16px 10px; cursor: pointer; }
+.tm-amount-card.tm-amount-big .amount-currency { font-size: 1.8rem; }
+.tm-amount-card.tm-amount-big .amount-input-v2 {
+    font-size: 2.6rem; font-weight: 700; text-align: left;
+    flex: 1; min-width: 0; padding: 0; line-height: 1.15;
+}
+.tm-amount-card.tm-amount-big .amount-input-v2::placeholder { color: var(--bs-secondary-color); opacity: .45; }
+.amount-kb-toggle {
+    flex-shrink: 0; border: 0; background: transparent; padding: 5px 8px; border-radius: 10px;
+    color: var(--bs-secondary-color); font-size: 1.25rem; line-height: 1;
+}
+.amount-kb-toggle.active { color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), 0.12); }
+.amount-expr-hint { text-align: right; padding-top: 2px; font-size: 0.95rem; font-weight: 600; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums; }
+.amount-expr-hint.is-bad { color: var(--app-expense); }
+
+.amount-keypad {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    flex: none; padding: 8px 10px 6px;
+    border-top: 1px solid var(--bs-border-color);
+}
+.amount-keypad button {
+    height: 46px; border: 0; border-radius: 12px;
+    background: var(--bs-tertiary-bg); color: var(--bs-body-color);
+    font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+}
+.amount-keypad button:active { background: rgba(var(--bs-primary-rgb), 0.2); }
+.amount-keypad .kp-fn { color: var(--bs-secondary-color); font-size: 1.1rem; }
+.amount-keypad .kp-op { color: var(--bs-primary); font-size: 1.35rem; }
+.amount-keypad .kp-eq { color: var(--bs-secondary-color); }
+.amount-keypad .kp-eq.is-ready { background: var(--bs-primary); color: var(--app-on-primary); }
+.amount-keypad button:disabled { opacity: .4; }
+
+.tm-date-chips { display: flex; gap: 6px; padding: 8px 2px 2px; }
+.tm-date-chips button {
+    flex: 1; white-space: nowrap; padding: 4px 6px;
+    border: 1px solid var(--bs-border-color); border-radius: 999px; background: transparent;
+    color: var(--bs-body-color); font-size: 0.8rem;
+}
+.tm-date-chips button.active { background: rgba(var(--bs-primary-rgb), 0.14); border-color: var(--bs-primary); color: var(--bs-primary); font-weight: 600; }
+
+.btn-save-again {
+    flex: 1; padding: 10px 0; border-radius: 10px;
+    border: 1px solid var(--bs-primary); background: transparent; color: var(--bs-primary);
+    font-weight: 600; font-size: 0.9rem; white-space: nowrap;
+}
+.btn-save-again:active { background: rgba(var(--bs-primary-rgb), 0.12); }
+
+.desc-suggest-wrap { position: relative; }
+.desc-suggest-list {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 1060;
+    margin: 0; padding: 4px 0; list-style: none; max-height: 224px; overflow-y: auto;
+    background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.desc-suggest-list.open { display: block; }
+.desc-suggest-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 14px; cursor: pointer; }
+.desc-suggest-list li:active { background: rgba(var(--bs-primary-rgb), 0.1); }
+.desc-suggest-list .ds-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.92rem; }
+.desc-suggest-list .ds-meta { flex-shrink: 0; font-size: 0.74rem; color: var(--bs-secondary-color); }
