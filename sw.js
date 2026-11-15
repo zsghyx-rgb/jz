@@ -1,5 +1,5 @@
 /* 记一笔 · Service Worker
- * 与 index.html v5.0.4 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
+ * 与 index.html v5.1.1 配套（页面里通过 navigator.serviceWorker.register('sw.js') 注册）
  *
  * 策略：
  *  1. 应用外壳（index.html / css/*.css / js/*.js / manifest.json / 图标）：网络优先（3 秒超时），失败回退缓存
@@ -14,7 +14,7 @@
  *  页面收到提示后显示“有新版本，点击刷新”，用户点击时才 postMessage('SKIP_WAITING') 切换。
  *  这样用户正在填表时不会被打断。
  */
-const APP_VERSION = '5.0.4';
+const APP_VERSION = '5.1.1';
 const SHELL_CACHE = `jibi-shell-v${APP_VERSION}`;
 const CDN_CACHE = 'jibi-cdn-v2';   // CDN 资源带版本号，长期有效，不随 APP_VERSION 清理
 
@@ -40,13 +40,18 @@ const SHELL_URLS = [
   './js/20-cloud-sync.js',
   './js/25-login-settings.js',
   './js/30-auth-session.js',
+  './js/31-login-pin.js',
+  './js/32-entry-reminders.js',
   './js/35-ui-feedback.js',
   './js/40-draft-drive-sync.js',
   './js/45-import-export.js',
   './js/50-accounts.js',
   './js/52-account-detail.js',
   './js/55-transaction-modals.js',
+  './js/56-transfer-pair.js',
+  './js/57-transfer-ui.js',
   './js/58-split-items.js',
+  './js/59-trans-form-ui.js',
   './js/60-budget.js',
   './js/62-category-icons.js',
   './js/64-transaction-submit.js',

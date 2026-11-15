@@ -40,7 +40,7 @@
         }
     })();
     </script>
-    <title id="app-title">记一笔 v5.0.5</title>
+    <title id="app-title">记一笔 v5.1.1</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -207,7 +207,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.0.5</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.1.1</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -621,43 +621,6 @@
                     <i class="bi bi-chevron-right"></i>
                 </div>
 
-                <!-- 5.0.4 新增：主题风格 + 外观（仅保存在本机，不写入加密数据、不参与同步） -->
-                <div class="settings-section-title">外观</div>
-                <div class="appearance-block">
-                    <div class="appearance-block-head">
-                        <span class="appearance-block-title">主题风格</span>
-                        <span class="appearance-block-hint">切换后立即生效</span>
-                    </div>
-                    <div class="theme-pick-grid" id="theme-pick-grid">
-                        <button type="button" class="theme-pick" data-theme="clean" onclick="setAppTheme('clean')" aria-label="简洁清爽主题">
-                            <span class="theme-swatch theme-swatch-clean"><span></span><span></span><span></span><span></span></span>
-                            <span class="theme-pick-name">简洁清爽</span>
-                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
-                        </button>
-                        <button type="button" class="theme-pick" data-theme="cute" onclick="setAppTheme('cute')" aria-label="可爱活泼主题">
-                            <span class="theme-swatch theme-swatch-cute"><span></span><span></span><span></span><span></span></span>
-                            <span class="theme-pick-name">可爱活泼</span>
-                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
-                        </button>
-                        <button type="button" class="theme-pick" data-theme="finance" onclick="setAppTheme('finance')" aria-label="深色金融主题">
-                            <span class="theme-swatch theme-swatch-finance"><span></span><span></span><span></span><span></span></span>
-                            <span class="theme-pick-name">深色金融</span>
-                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
-                        </button>
-                    </div>
-                </div>
-                <div class="appearance-block">
-                    <div class="appearance-block-head">
-                        <span class="appearance-block-title">深浅模式</span>
-                        <span class="appearance-block-hint">跟随系统时随手机深浅色切换</span>
-                    </div>
-                    <div class="appearance-seg" id="appearance-seg" role="group" aria-label="外观模式">
-                        <button type="button" data-mode="auto" onclick="setColorMode('auto')">跟随系统</button>
-                        <button type="button" data-mode="light" onclick="setColorMode('light')">浅色</button>
-                        <button type="button" data-mode="dark" onclick="setColorMode('dark')">深色</button>
-                    </div>
-                </div>
-
                 <div class="settings-section-title">记账</div>
                 <div class="settings-menu-list">
                     <div class="settings-menu-item" onclick="showSettingsSubpage('planned')">
@@ -693,6 +656,11 @@
 
                 <div class="settings-section-title">其他</div>
                 <div class="settings-menu-list">
+                    <div class="settings-menu-item" onclick="showSettingsSubpage('appearance')">
+                        <i class="bi bi-palette"></i>
+                        <span>外观与主题</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
                     <div class="settings-menu-item" onclick="showSettingsSubpage('about')">
                         <i class="bi bi-info-circle"></i>
                         <span>关于</span>
@@ -707,6 +675,59 @@
                     <button class="btn btn-outline-danger w-100" onclick="logout()">
                         <i class="bi bi-box-arrow-left"></i> 退出登录（<span id="mobile-current-user"></span>）
                     </button>
+                </div>
+            </div>
+
+            <!-- Sub-page: 外观与主题（5.1.1 起放进二级菜单；以下设置只保存在本机，不写入加密数据、不参与同步） -->
+            <div id="settings-sub-appearance" class="settings-subpage">
+                <div class="subpage-header">
+                    <i class="bi bi-arrow-left" onclick="showSettingsMenu()"></i>
+                    <span>外观与主题</span>
+                </div>
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">主题风格</span>
+                        <span class="appearance-block-hint">切换后立即生效</span>
+                    </div>
+                    <div class="theme-pick-grid" id="theme-pick-grid">
+                        <button type="button" class="theme-pick" data-theme="clean" onclick="setAppTheme('clean')" aria-label="简洁清爽主题">
+                            <span class="theme-swatch theme-swatch-clean"><span></span><span></span><span></span><span></span></span>
+                            <span class="theme-pick-name">简洁清爽</span>
+                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
+                        </button>
+                        <button type="button" class="theme-pick" data-theme="cute" onclick="setAppTheme('cute')" aria-label="可爱活泼主题">
+                            <span class="theme-swatch theme-swatch-cute"><span></span><span></span><span></span><span></span></span>
+                            <span class="theme-pick-name">可爱活泼</span>
+                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
+                        </button>
+                        <button type="button" class="theme-pick" data-theme="finance" onclick="setAppTheme('finance')" aria-label="深色金融主题">
+                            <span class="theme-swatch theme-swatch-finance"><span></span><span></span><span></span><span></span></span>
+                            <span class="theme-pick-name">深色金融</span>
+                            <span class="theme-pick-check"><i class="bi bi-check-circle-fill"></i></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">深浅模式</span>
+                        <span class="appearance-block-hint">跟随系统时随手机深浅色切换</span>
+                    </div>
+                    <div class="appearance-seg" id="appearance-seg" role="group" aria-label="外观模式">
+                        <button type="button" data-mode="auto" onclick="setColorMode('auto')">跟随系统</button>
+                        <button type="button" data-mode="light" onclick="setColorMode('light')">浅色</button>
+                        <button type="button" data-mode="dark" onclick="setColorMode('dark')">深色</button>
+                    </div>
+                </div>
+
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">同步提示位置</span>
+                        <span class="appearance-block-hint" id="sync-bar-pos-state">当前：默认位置</span>
+                    </div>
+                    <div class="sync-pos-row">
+                        <span class="sync-pos-tip">长按“有修改尚未同步”提示，再拖动即可移动；位置只保存在本机。</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="sync-bar-reset-btn" onclick="resetSyncBarPos()" disabled>恢复默认</button>
+                    </div>
                 </div>
             </div>
 
@@ -827,6 +848,11 @@
                     <div class="settings-menu-item" onclick="showSettingsSubpage('orphan-attachments')">
                         <i class="bi bi-paperclip"></i>
                         <span>清理孤立附件</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                    <div class="settings-menu-item" onclick="scanOrphanTransfers()">
+                        <i class="bi bi-arrow-left-right"></i>
+                        <span>检查孤立转账</span>
                         <i class="bi bi-chevron-right"></i>
                     </div>
                     <div class="settings-menu-item" onclick="showSettingsSubpage('password')">
@@ -963,7 +989,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.0.5</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.1.1</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -1248,11 +1274,13 @@
                     <div class="trans-scroll-area">
 
                         <!-- 金额卡片 -->
-                        <div class="tm-card tm-amount-card" id="trans-amount-card">
+                        <div class="tm-card tm-amount-card tm-amount-big" id="trans-amount-card" onclick="amountPadShow()">
                             <div class="amount-input-row-v3">
                                 <span class="amount-currency" id="amount-currency-symbol">¥</span>
-                                <input type="text" inputmode="decimal" placeholder="0.00" class="amount-input-v2 decimal-input" id="edit-trans-amount" required="">
+                                <input type="text" inputmode="none" readonly placeholder="0.00" class="amount-input-v2 decimal-input" id="edit-trans-amount" required="">
+                                <button type="button" class="amount-kb-toggle" id="amount-kb-toggle" title="切换系统键盘 / 数字键盘" onclick="event.stopPropagation();toggleAmountKeyboard()"><i class="bi bi-keyboard"></i></button>
                             </div>
+                            <div class="amount-expr-hint" id="amount-expr-hint" style="display:none;"></div>
                         </div>
 
                         <!-- 账户 / 日期 卡片（同一行） -->
@@ -1271,6 +1299,12 @@
                                     <div class="tm-row-value" id="edit-trans-date-label">今天</div>
                                     <input type="date" class="tm-date-input-hidden" id="edit-trans-date" required="" onchange="syncDateLabels()">
                                 </div>
+                            </div>
+                            <div class="tm-date-chips" id="trans-date-chips">
+                                <button type="button" data-off="0" onclick="setTransDateOffset(0)">今天</button>
+                                <button type="button" data-off="1" onclick="setTransDateOffset(1)">昨天</button>
+                                <button type="button" data-off="2" onclick="setTransDateOffset(2)">前天</button>
+                                <button type="button" data-off="pick" onclick="pickTransDate()"><i class="bi bi-calendar3"></i> <span id="trans-date-chip-pick">选日期</span></button>
                             </div>
                         </div>
 
@@ -1305,11 +1339,16 @@
                         <div id="single-meta-section">
 
                             <!-- 备注 -->
-                            <div class="tm-card tm-meta-box" id="desc-collapse-wrap" onclick="$('edit-trans-desc').focus()">
-                                <input type="text" class="tm-meta-input" id="edit-trans-desc"
-                                       oninput="updateDescHint('edit-trans-desc','edit-trans-desc-hint','edit-trans-type','edit-trans-category','edit-trans-account')"
-                                       placeholder="添加备注...">
-                                <i class="bi bi-chevron-right tm-row-chevron"></i>
+                            <div class="desc-suggest-wrap">
+                                <div class="tm-card tm-meta-box" id="desc-collapse-wrap" onclick="$('edit-trans-desc').focus()">
+                                    <input type="text" class="tm-meta-input" id="edit-trans-desc" autocomplete="off"
+                                           oninput="onTransDescInput()"
+                                           onfocus="onTransDescInput()"
+                                           onblur="scheduleCloseDescSuggest()"
+                                           placeholder="添加备注...">
+                                    <i class="bi bi-chevron-right tm-row-chevron"></i>
+                                </div>
+                                <ul class="desc-suggest-list" id="desc-suggest-list"></ul>
                             </div>
                             <div id="edit-trans-desc-hint" style="display:none;align-items:center;gap:6px;margin-top:-2px;margin-bottom:6px;padding:3px 8px;border-radius:5px;background:rgba(var(--bs-primary-rgb),0.08);border:1px solid rgba(var(--bs-primary-rgb),0.2);font-size:0.78rem;"></div>
 
@@ -1344,12 +1383,33 @@
                         </div>
                     </div>
 
+                    <!-- 数字键盘（5.1.1）：支出/收入的金额用它输入，支持 + − 算式；点备注/标签时自动收起 -->
+                    <div class="amount-keypad" id="amount-keypad" role="group" aria-label="数字键盘">
+                        <button type="button" data-k="7">7</button>
+                        <button type="button" data-k="8">8</button>
+                        <button type="button" data-k="9">9</button>
+                        <button type="button" data-k="back" class="kp-fn" aria-label="退格"><i class="bi bi-backspace"></i></button>
+                        <button type="button" data-k="4">4</button>
+                        <button type="button" data-k="5">5</button>
+                        <button type="button" data-k="6">6</button>
+                        <button type="button" data-k="+" class="kp-op">＋</button>
+                        <button type="button" data-k="1">1</button>
+                        <button type="button" data-k="2">2</button>
+                        <button type="button" data-k="3">3</button>
+                        <button type="button" data-k="-" class="kp-op">－</button>
+                        <button type="button" data-k="clear" class="kp-fn">C</button>
+                        <button type="button" data-k="0">0</button>
+                        <button type="button" data-k=".">.</button>
+                        <button type="button" data-k="=" class="kp-eq" id="kp-eq">=</button>
+                    </div>
+
                     <!-- 底部保存栏（金额已移至顶部卡片） -->
                     <div class="trans-amount-bar tm-footer-bar" id="trans-amount-bar">
                         <div class="trans-action-row">
                             <button type="button" class="btn-delete-immersive" id="edit-trans-delete-btn" onclick="deleteCurrentTransaction()" style="display:none!important;">
                                 <i class="bi bi-trash"></i> 删除
                             </button>
+                            <button type="button" class="btn-save-again" id="edit-trans-save-again-btn" onclick="submitTransAndContinue()" style="display:none;"><i class="bi bi-plus-lg"></i> 保存并再记</button>
                             <button type="submit" class="btn-save-immersive" id="edit-trans-submit-btn"><i class="bi bi-check-lg"></i> 保存</button>
                         </div>
                     </div>
@@ -1362,27 +1422,28 @@
 
                     <div class="trans-scroll-area">
 
-                        <!-- 转账金额卡片 -->
+                        <!-- 转账金额：一个大金额；只有跨币种时才出现“转入金额” -->
                         <div class="tm-card tm-amount-card tm-transfer-amount-card">
-                            <div class="transfer-amount-row">
-                                <div class="transfer-amount-field">
-                                    <label class="amt-label">转出金额</label>
-                                    <div class="transfer-amount-input-row">
-                                        <span class="amount-currency" id="transfer-currency-out">¥</span>
-                                        <input type="text" inputmode="decimal" placeholder="0.00" class="amount-input-v2 transfer-amount-input decimal-input" id="edit-transfer-amount-out" oninput="handleEditTransferAmountChange('out')" required="">
-                                    </div>
+                            <div class="transfer-main-amount">
+                                <label class="amt-label" for="edit-transfer-amount-out">转账金额</label>
+                                <div class="transfer-amount-input-row">
+                                    <span class="amount-currency" id="transfer-currency-out">¥</span>
+                                    <input type="text" inputmode="decimal" placeholder="0.00" class="amount-input-v2 transfer-amount-input decimal-input" id="edit-transfer-amount-out" oninput="handleEditTransferAmountChange('out')" required="">
                                 </div>
-                                <div class="transfer-amount-field">
-                                    <label class="amt-label">转入金额</label>
-                                    <div class="transfer-amount-input-row">
-                                        <span class="amount-currency" id="transfer-currency-in">¥</span>
-                                        <input type="text" inputmode="decimal" placeholder="0.00" class="amount-input-v2 transfer-amount-input decimal-input" id="edit-transfer-amount-in" oninput="handleEditTransferAmountChange('in')" required="">
-                                    </div>
+                            </div>
+                            <div class="transfer-in-wrap" id="transfer-in-wrap" style="display:none;">
+                                <div class="transfer-in-head">
+                                    <label class="amt-label" for="edit-transfer-amount-in">转入金额</label>
+                                    <span class="transfer-rate-hint" id="transfer-rate-hint"></span>
+                                </div>
+                                <div class="transfer-amount-input-row">
+                                    <span class="amount-currency" id="transfer-currency-in">¥</span>
+                                    <input type="text" inputmode="decimal" placeholder="0.00" class="amount-input-v2 transfer-amount-input decimal-input" id="edit-transfer-amount-in" oninput="handleEditTransferAmountChange('in')">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 转出/转入账户 + 日期 卡片 -->
+                        <!-- 转出 / 转入账户（上下两行）+ 日期 -->
                         <div class="tm-card tm-row-card">
                             <div class="transfer-flow-row">
                                 <div class="acc-select-wrapper transfer-acc-card" id="wrap-edit-transfer-from">
@@ -1395,7 +1456,7 @@
                                     <div class="acc-select-dropdown" id="dropdown-edit-transfer-from"></div>
                                 </div>
                                 <button type="button" class="transfer-flow-arrow" title="互换转出/转入账户" onclick="swapTransferAccounts()">
-                                    <i class="bi bi-arrow-left-right"></i>
+                                    <i class="bi bi-arrow-down-up"></i>
                                 </button>
                                 <div class="acc-select-wrapper transfer-acc-card" id="wrap-edit-transfer-to">
                                     <select class="form-select" id="edit-transfer-to" onchange="handleEditTransferAmountChange()" required="" style="display:none;"></select>
@@ -1414,6 +1475,26 @@
                                 <input type="date" class="tm-date-input-hidden" id="edit-transfer-date" required="" onchange="syncDateLabels()">
                             </div>
                         </div>
+
+                        <!-- 手续费：默认折叠；记为转出账户的一笔“手续费”支出 -->
+                        <div class="tm-card tm-row-card" id="transfer-fee-card">
+                            <div class="tm-row" onclick="toggleTransferFee()">
+                                <div class="tm-row-icon tm-icon-orange"><i class="bi bi-receipt"></i></div>
+                                <div class="tm-row-value">手续费</div>
+                                <span class="transfer-fee-summary" id="transfer-fee-summary">无</span>
+                                <i class="bi bi-chevron-down tm-row-chevron" id="transfer-fee-chevron"></i>
+                            </div>
+                            <div class="transfer-fee-body" id="transfer-fee-body" style="display:none;">
+                                <div class="transfer-fee-input-row">
+                                    <span class="amount-currency" id="transfer-currency-fee">¥</span>
+                                    <input type="text" inputmode="decimal" placeholder="0.00" class="transfer-fee-input decimal-input" id="edit-transfer-fee" oninput="handleTransferFeeInput()">
+                                    <button type="button" class="transfer-fee-clear" onclick="clearTransferFee()">清除</button>
+                                </div>
+                                <div class="transfer-fee-note">会记为转出账户的一笔支出，分类“手续费”，计入支出统计。</div>
+                            </div>
+                        </div>
+
+                        <div class="transfer-total-hint" id="transfer-total-hint" style="display:none;"></div>
 
                         <!-- 转账备注 -->
                         <div class="tm-card tm-row-card" id="transfer-desc-collapse-wrap">
@@ -1480,13 +1561,18 @@
 <script src="js/20-cloud-sync.js"></script>
 <script src="js/25-login-settings.js"></script>
 <script src="js/30-auth-session.js"></script>
+<script src="js/31-login-pin.js"></script>
+<script src="js/32-entry-reminders.js"></script>
 <script src="js/35-ui-feedback.js"></script>
 <script src="js/40-draft-drive-sync.js"></script>
 <script src="js/45-import-export.js"></script>
 <script src="js/50-accounts.js"></script>
 <script src="js/52-account-detail.js"></script>
 <script src="js/55-transaction-modals.js"></script>
+<script src="js/56-transfer-pair.js"></script>
+<script src="js/57-transfer-ui.js"></script>
 <script src="js/58-split-items.js"></script>
+<script src="js/59-trans-form-ui.js"></script>
 <script src="js/60-budget.js"></script>
 <script src="js/62-category-icons.js"></script>
 <script src="js/64-transaction-submit.js"></script>
