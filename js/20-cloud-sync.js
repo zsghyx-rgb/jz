@@ -92,6 +92,7 @@ function incConfigPayload(d) {
         exchangeRates: d.exchangeRates || null,
         budgets: d.budgets || [],
         categoryIcons: d.categoryIcons || {},
+        userPins: d.userPins || {},
         configUpdatedAt: d.configUpdatedAt || 0
     };
 }
@@ -143,12 +144,46 @@ function incRemoveLocalById(data, id) {
     return removed;
 }
 
+function incFindLocalById(data, id) {
+    for (const ud of Object.values(data.allUserData || {})) {
+        for (const ln of Object.values(INC_KIND_LIST)) {
+            const r = (ud[ln] || []).find(x => String(x.id) === id);
+            if (r) return r;
+        }
+    }
+    return null;
+}
+
+/** 转账 = 转出 + 转入两条独立记录（外加可能的手续费记录）。云端把它们当作互不相干的行，
+ *  只要其中一条的删除没有送达（推送中断、旧版本删除、清理云端已删除行等），另一半就会孤零零地留下。
+ *  所以收到某条转账记录的删除时，本机把同一笔转账的另一半和手续费一并删掉；
+ *  这些被连带删除的记录之后会在本机的差异计算里变成墓碑，补发给云端和其他设备。 */
+function incRemoveTransferCompanions(data, gone) {
+    if (!gone || !gone.isTransfer) return 0;
+    const pairKey = gone.transferPairId != null ? String(gone.transferPairId) : null;
+    const feeKey = pairKey != null ? pairKey : (gone.type === 'expense' ? String(gone.id) : null);
+    if (pairKey == null && feeKey == null) return 0;
+    let n = 0;
+    Object.values(data.allUserData || {}).forEach(ud => {
+        const arr = ud.transactions;
+        if (!arr) return;
+        for (let i = arr.length - 1; i >= 0; i--) {
+            const r = arr[i];
+            const samePair = pairKey != null && r.isTransfer && r.transferPairId != null && String(r.transferPairId) === pairKey;
+            const isFee = feeKey != null && r.transferFeeFor != null && String(r.transferFeeFor) === feeKey;
+            if (samePair || isFee) { arr.splice(i, 1); n++; }
+        }
+    });
+    return n;
+}
+
 function incApplyConfig(data, cfg) {
     data.users = cfg.users || data.users || [];
     data.categories = cfg.categories || data.categories;
     data.exchangeRates = cfg.exchangeRates || data.exchangeRates;
     data.budgets = cfg.budgets || [];
     data.categoryIcons = cfg.categoryIcons || {};
+    data.userPins = cfg.userPins || data.userPins || {};
     data.configUpdatedAt = cfg.configUpdatedAt || 0;
     (data.users || []).forEach(u => incEnsureUserSlot(data, u));
 }
@@ -199,7 +234,9 @@ function incApplyRows(data, decrypted, state) {
         if (row.seq > state.lastSeq) state.lastSeq = row.seq;
 
         if (row.deleted) {
+            const gone = row.kind === 'txn' ? incFindLocalById(data, id) : null;   // 先取到记录再删，才能找到它的另一半
             if (incRemoveLocalById(data, id)) { res.removed++; res.changed++; }
+            if (gone) { const extra = incRemoveTransferCompanions(data, gone); if (extra) { res.removed += extra; res.changed += extra; } }
             state.synced[id] = 'X';
             return;
         }
@@ -385,6 +422,7 @@ function incRefreshAfterMerge(summary) {
     exchangeRates = inMemoryLoadedData.exchangeRates || DEFAULT_RATES;
     categoryIcons = inMemoryLoadedData.categoryIcons || {};
     budgets       = inMemoryLoadedData.budgets       || [];
+    userPins      = inMemoryLoadedData.userPins      || {};
     if (inMemoryLoadedData.users && inMemoryLoadedData.users.length) dataUsers = inMemoryLoadedData.users;
     if (!currentUser) { // 还在登录界面（例如迁移时）：只刷新用户列表
         window._suppressAutoLogin = true;
@@ -431,6 +469,9 @@ async function incBackgroundSync() {
         saveUserData();
         const s = await incSyncCore({ manual: false });
         localStorage.setItem('APP_last_login_time', Date.now().toString());
+        // 即使表单打开、稍后才刷新界面，也先把配置里的 PIN 同步到全局变量，
+        // 否则随后保存表单时可能用旧的 userPins 覆盖云端的新值。
+        userPins = inMemoryLoadedData.userPins || userPins || {};
         if (s.aborted) { showToast('后台同步已中止：' + s.aborted, 'warning', 4000); return; }
         incPersistLocal(s.state, s.changed > 0 || s.pushed > 0 || s.deleted > 0);
         clearUnsavedFlag();
@@ -450,13 +491,15 @@ async function incBackgroundSync() {
         showToast('同步失败：' + msg, 'error', 0);
     } finally {
         driveIsSyncing = false;
+        // 同步结束后再检查进入提醒（若登录时已检查过，函数内部会直接返回）
+        if (typeof checkEntryReminders === 'function') setTimeout(checkEntryReminders, 400);
     }
 }
 
 /* ── 首次加载（本机没有缓存）：输入密码 → 全量拉取 → 解密 ── */
 function incAssemble(rows, pw) {
     const dec = incDecryptRows(rows, pw);
-    const data = { users: [], allUserData: {}, categories: null, exchangeRates: null, budgets: [], categoryIcons: {}, configUpdatedAt: 0, deletedLog: [] };
+    const data = { users: [], allUserData: {}, categories: null, exchangeRates: null, budgets: [], categoryIcons: {}, userPins: {}, configUpdatedAt: 0, deletedLog: [] };
     const state = { lastSeq: 0, synced: {} };
     let hasConfig = false;
     dec.sort((a, b) => a.row.seq - b.row.seq).forEach(({ row, rec }) => {

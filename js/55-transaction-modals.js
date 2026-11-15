@@ -1,7 +1,15 @@
 // @file js/55-transaction-modals.js
 // 新增/编辑交易与转账弹窗：标签切换、打开新增/编辑、转账账户互换、删除交易。
 
+// 5.1.1：切换前先把金额里的算式算成数字（再带到另一个标签），切换后刷新数字键盘/日期快捷
 function switchTransTab(tab, skipReset) {
+    commitTransAmount();
+    _switchTransTabCore(tab, skipReset);
+    amountPadSync();
+    syncDateChips();
+}
+
+function _switchTransTabCore(tab, skipReset) {
     // tab: 'expense' | 'income' | 'transfer'
     const transForm = $('edit-transaction-form');
     const transferForm = $('edit-transfer-form');
@@ -90,6 +98,7 @@ function syncDateLabels() {
     if (tEl) tEl.textContent = formatTransDateLabel($('edit-trans-date').value);
     const fEl = $('edit-transfer-date-label');
     if (fEl) fEl.textContent = formatTransDateLabel($('edit-transfer-date').value);
+    syncDateChips();   // 日期快捷按钮的高亮跟着变
 }
 
 // 标签输入框始终显示（不再需要展开/收起逻辑）
@@ -100,7 +109,7 @@ function _userTitle(base) {
 }
 
 function _initNewTransModal(mode, title) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocal(new Date());   // 本地日期（toISOString 是 UTC，东八区 0~8 点会变成“昨天”）
     $('editTransactionModal').querySelector('.trans-modal-v2')?.classList.remove('view-only');
     $('edit-trans-id').value = '';
     $('edit-trans-mode').value = mode;
@@ -123,6 +132,7 @@ function _initNewTransModal(mode, title) {
     resetAttachmentUI();
     resetMetaFieldsCollapse();
     $('trans-tab-bar').style.display = '';
+    transFormUiInit('add');
 }
 
 function openNewTransFromDetail() {
@@ -143,7 +153,7 @@ function openNewTransFromDetail() {
 
 function openNewTransferFromDetail() {
     openedFromDetail = true;
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocal(new Date());   // 本地日期（toISOString 是 UTC，东八区 0~8 点会变成“昨天”）
     $('editTransactionModal').querySelector('.trans-modal-v2')?.classList.remove('view-only');
     $('editTransactionModal').querySelectorAll('input,select,textarea').forEach(el => el.disabled = false);
     $('editTransactionModalTitle').textContent = _userTitle('新增转账');
@@ -157,6 +167,7 @@ function openNewTransferFromDetail() {
     $('edit-transfer-amount-in').value = '';
     $('edit-transfer-desc').value = '';
     resetMetaFieldsCollapse();
+    resetTransferFeeUI();
     $('trans-tab-bar').style.display = '';
     switchTransTab('transfer', true);
     new bootstrap.Modal($('editTransactionModal')).show();
@@ -227,6 +238,7 @@ function openNewTransfer() {
     $('edit-transfer-amount-out').value = '';
     $('edit-transfer-amount-in').value = '';
     $('edit-transfer-desc').value = '';
+    resetTransferFeeUI();
     switchTransTab('transfer', true);
     new bootstrap.Modal($('editTransactionModal')).show();
 }
@@ -237,6 +249,8 @@ function swapTransferAccounts() {
     const fromSel = $('edit-transfer-from');
     const toSel = $('edit-transfer-to');
     if (!fromSel || !toSel) return;
+    const toAcc = accounts.find(a => a.id == toSel.value);
+    if (toAcc && toAcc.ownerName !== currentUserName) { uiAlert('只能从自己的账户转出，转入账户是其他用户的账户，无法互换'); return; }
     const tmp = fromSel.value;
     fromSel.value = toSel.value;
     toSel.value = tmp;
@@ -249,7 +263,10 @@ function swapTransferAccounts() {
         const tmpAmt = outAmtEl.value;
         outAmtEl.value = inAmtEl.value;
         inAmtEl.value = tmpAmt;
+        inAmtEl.dataset.auto = '';
     }
+    markTransferPair();
+    refreshTransferLayout();
 }
 
 function handleEditTransferAmountChange(direction) {
@@ -258,30 +275,52 @@ function handleEditTransferAmountChange(direction) {
     if (!fromId || !toId) return;
     const accFrom = accounts.find(a => a.id == fromId);
     const accTo   = accounts.find(a => a.id == toId);
-    if (!accFrom || !accTo || accFrom.currency !== accTo.currency) return;
+    if (!accFrom || !accTo) return;
 
     const outEl = $('edit-transfer-amount-out');
     const inEl  = $('edit-transfer-amount-in');
-    if (direction === 'out') {
-        inEl.value = outEl.value;
-    } else if (direction === 'in') {
-        outEl.value = inEl.value;
+    // 换了账户且币种组合变了：转入金额不再沿用旧值，按新币种重新估算/同步
+    const pairKey = `${accFrom.currency}>${accTo.currency}`;
+    if (direction === undefined && inEl.dataset.pair !== undefined && inEl.dataset.pair !== pairKey) inEl.dataset.auto = '1';
+    inEl.dataset.pair = pairKey;
+    if (accFrom.currency === accTo.currency) {
+        // 同币种：只需输入一个金额，转入金额自动等于转出金额
+        if (direction === 'out') {
+            inEl.value = outEl.value;
+            inEl.dataset.auto = '1';     // 同币种时转入金额是镜像值，不是用户输入
+        } else if (direction === 'in') {
+            outEl.value = inEl.value;
+        } else {
+            // 账户切换触发（无 direction）：哪个有值就同步到另一个，都有值以 out 为准
+            if (outEl.value) inEl.value = outEl.value;
+            else if (inEl.value) outEl.value = inEl.value;
+        }
     } else {
-        // 账户切换触发（无 direction）：哪个有值就同步到另一个，都有值以 out 为准
-        if (outEl.value) inEl.value = outEl.value;
-        else if (inEl.value) outEl.value = inEl.value;
+        // 跨币种：用户手动改转入金额后不再自动估算
+        if (direction === 'in') inEl.dataset.auto = '';
+        else autoEstimateTransferIn();
     }
+    refreshTransferLayout();
 }
 
 function deleteTransaction(id) {
     const t = transactions.find(x => x.id === id);
     if (!t) { uiAlert('找不到记录'); return; }
+    let feeRecToDelete = null;   // 这笔转账的手续费记录（有的话一并删除）
 
+    let pairIds = null;          // 要一起删除的转账记录 id（转出 + 转入）
     if (t.isTransfer) {
-        let tOut = t.type === 'expense' ? t : (t.transferPairId ?
-            transactions.find(x => x.transferPairId === t.transferPairId && x.type === 'expense') :
-            transactions.find(x => x.isTransfer && x.type === 'expense' && x.date === t.date && x.relatedAccountId === t.accountId));
-        if (!tOut || tOut.ownerName !== currentUserName) { uiAlert('无权删除此转账'); return; }
+        const pr = resolveTransferPair(t);
+        if (pr.orphan) {
+            // 另一半已不存在：谁拥有这条记录，谁可以删除它
+            if (t.ownerName !== currentUserName) { uiAlert('无权删除此转账'); return; }
+            pairIds = [t.id];
+            if (pr.tOut) feeRecToDelete = getTransferFeeRecord(pr.tOut);
+        } else {
+            if (pr.tOut.ownerName !== currentUserName) { uiAlert('无权删除此转账'); return; }
+            pairIds = [pr.tOut.id, pr.tIn.id];
+            feeRecToDelete = getTransferFeeRecord(pr.tOut);
+        }
     } else {
         if (t.ownerName !== currentUserName) { uiAlert('无权删除此交易'); return; }
     }
@@ -295,16 +334,19 @@ function deleteTransaction(id) {
         const now = Date.now();
         // 收集要删除的id，写入删除日志
         let deletedIds = [];
-        if (t.isTransfer && t.transferPairId) {
-            deletedIds = transactions.filter(x => x.transferPairId === t.transferPairId).map(x => x.id);
-            transactions = transactions.filter(x => x.transferPairId !== t.transferPairId);
-        } else if (t.isTransfer) {
-            const toDelete = transactions.filter(x => x.isTransfer && x.date === t.date && (x.id === t.id || x.relatedAccountId == t.accountId));
-            deletedIds = toDelete.map(x => x.id);
+        if (t.isTransfer) {
+            // 有配对 id 的：同一 transferPairId 的全部记录；老数据：只删找到的这一对（不再按“同一天 + 账户”误伤别的转账）
+            deletedIds = t.transferPairId != null
+                ? transactions.filter(x => x.isTransfer && _sameId(x.transferPairId, t.transferPairId)).map(x => x.id)
+                : pairIds.slice();
             transactions = transactions.filter(x => !deletedIds.includes(x.id));
         } else {
             deletedIds = [id];
             transactions = transactions.filter(x => x.id !== id);
+        }
+        if (feeRecToDelete) {
+            deletedIds.push(feeRecToDelete.id);
+            transactions = transactions.filter(x => x.id !== feeRecToDelete.id);
         }
         // 写入删除日志到根数据
         if (!inMemoryLoadedData.deletedLog) inMemoryLoadedData.deletedLog = [];
@@ -323,8 +365,8 @@ function deleteTransaction(id) {
         if ($('view-stats').classList.contains('active-view')) renderStats();
     }
 
-    const removedCount = Math.max(1, snapCount - transactions.length);
-    showUndo(`已删除 ${removedCount} 笔${t.isTransfer ? '转账' : '交易'}`, () => {
+    const removedCount = Math.max(1, snapCount - transactions.length - (feeRecToDelete ? 1 : 0));
+    showUndo(`已删除 ${removedCount} 笔${t.isTransfer ? '转账' : '交易'}${feeRecToDelete ? '（含手续费）' : ''}`, () => {
         transactions = snapTransactions;
         inMemoryLoadedData.deletedLog = snapDeletedLog;
         saveUserData(); triggerAutoSave(); filterUserData();
@@ -397,6 +439,7 @@ function openEditTransaction(id) {
         el.disabled = readOnly;
     });
     $('editTransactionModal').querySelector('.trans-modal-v2')?.classList[readOnly ? 'add' : 'remove']('view-only');
+    transFormUiInit(readOnly ? 'view' : 'edit');
     new bootstrap.Modal($('editTransactionModal')).show();
 }
 
@@ -406,21 +449,9 @@ function openEditTransfer(id) {
     const t = pool.find(x => x.id === id);
     if (!t || !t.isTransfer) return;
 
-    let tOut, tIn;
-    if (t.transferPairId) {
-        const pair = pool.filter(x => x.transferPairId === t.transferPairId);
-        tOut = pair.find(x => x.type === 'expense');
-        tIn  = pair.find(x => x.type === 'income');
-    } else {
-        if (t.type === 'expense') {
-            tOut = t;
-            tIn  = pool.find(x => x.isTransfer && x.type === 'income' && x.date === t.date && x.accountId === t.relatedAccountId);
-        } else {
-            tIn  = t;
-            tOut = pool.find(x => x.isTransfer && x.type === 'expense' && x.date === t.date && x.relatedAccountId === t.accountId);
-        }
-    }
-    if (!tOut || !tIn) { uiAlert('找不到配对的转账记录'); return; }
+    const pr = resolveTransferPair(t, pool);
+    if (pr.orphan) { handleOrphanTransfer(t); return; }   // 另一半已不存在：说明情况，是自己的记录可删除
+    const tOut = pr.tOut, tIn = pr.tIn;
 
     // 只读判断：非本人转账
     const isOwner = tOut.ownerName === currentUserName;
@@ -440,13 +471,31 @@ function openEditTransfer(id) {
     $('edit-transfer-date').value = tOut.date;
     $('trans-tab-bar').style.display = 'none';
     switchTransTab('transfer', true);
+    // switchTransTab 会按“新增”重置标题；刚新增过转账再打开编辑时会显示成“新增转账”，所以在它之后再设一次
+    $('editTransactionModalTitle').textContent = readOnly ? `查看转账（${tOut.ownerName}）` : '编辑转账';
     fillTransferSelects(tOut.accountId, tIn.accountId);
+    // 收款人查看他人发起的转账时，转出账户不在自己的账户列表里：补上一项，才能显示转出账户名称
+    {
+        const fromSel = $('edit-transfer-from');
+        if (![...fromSel.options].some(o => o.value == tOut.accountId)) {
+            const fromAcc = accounts.find(a => a.id == tOut.accountId);
+            if (fromAcc) {
+                const nm = `${getAccountDisplayName(fromAcc)} (${CURRENCY_SYMBOLS[fromAcc.currency]})`;
+                const opt = new Option(nm, fromAcc.id);
+                opt.setAttribute('data-name', nm);
+                fromSel.add(opt);
+                fromSel.value = tOut.accountId;
+                accSelectSync('edit-transfer-from');
+            }
+        }
+    }
     $('edit-transfer-amount-out').value = Math.abs(tOut.amount);
     $('edit-transfer-amount-in').value = Math.abs(tIn.amount);
     $('edit-transfer-desc').value = tOut.desc || '';
     // 重置并按已有数据展开
     resetMetaFieldsCollapse();
     expandTransferDescForExistingData(tOut.desc);
+    loadTransferFeeUI(tOut, readOnly);
 
     // 只读模式：禁用所有转账表单控件
     const form = $('editTransactionModal');

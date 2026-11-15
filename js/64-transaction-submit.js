@@ -5,6 +5,9 @@ $('editTransactionModal').addEventListener('hidden.bs.modal', onSubModalHide);
 
 $('edit-transaction-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    const keepOpen = _transKeepOpen;      // “保存并再记”：保存后窗口不关
+    _transKeepOpen = false;
+    commitTransAmount();                  // 金额框里如果是算式 (12+8.5)，先算成数字
     const mode = $('edit-trans-mode').value;
     if (mode === 'view') return; // 只读模式不保存
     const date = $('edit-trans-date').value;
@@ -57,9 +60,16 @@ $('edit-transaction-form').addEventListener('submit', (e) => {
         $('edit-trans-desc').value = '';
         const hintEl = $('edit-trans-desc-hint');
         if (hintEl) hintEl.style.display = 'none';
+        hideDescSuggest();
         resetAttachmentUI();
-        if (verboseToast) showToast('已添加', 'success', 1500);
+        if (verboseToast) showToast(keepOpen ? '已添加，继续记下一笔' : '已添加', 'success', 1500);
         if ($('view-stats').classList.contains('active-view')) renderStats();
+        if (keepOpen) {
+            amountPadReset();             // 金额清空，账户/日期/分类保留，数字键盘回到可用状态
+        } else {
+            bootstrap.Modal.getInstance($('editTransactionModal')).hide();   // 普通“保存”：保存后关闭
+            maybeReturnToDetail();
+        }
     } else {
         const id = parseFloat($('edit-trans-id').value);
         const t = transactions.find(x => x.id === id);
@@ -87,15 +97,18 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
     const newFromId = $('edit-transfer-from').value;
     const newToId = $('edit-transfer-to').value;
     const newAmtOut = parseFloat($('edit-transfer-amount-out').value);
-    const newAmtIn = parseFloat($('edit-transfer-amount-in').value);
     const newDesc = $('edit-transfer-desc').value;
+    const newFee = _transferFeeValue();     // 0 = 无手续费；NaN = 输入无效
 
     if (newFromId === newToId) { uiAlert('转出账户和转入账户不能相同'); return; }
-    if (isNaN(newAmtOut) || isNaN(newAmtIn)) { uiAlert('请输入有效的转账金额'); return; }
 
     const accFrom = accounts.find(a => a.id == newFromId);
     const accTo = accounts.find(a => a.id == newToId);
     if (!accFrom || !accTo) { uiAlert('账户不存在'); return; }
+    // 同币种时转入金额一定等于转出金额（转入框是隐藏的）；跨币种才读转入框
+    const newAmtIn = accFrom.currency === accTo.currency ? newAmtOut : parseFloat($('edit-transfer-amount-in').value);
+    if (isNaN(newAmtOut) || isNaN(newAmtIn) || newAmtOut <= 0 || newAmtIn <= 0) { uiAlert('请输入有效的转账金额'); return; }
+    if (isNaN(newFee)) { uiAlert('请输入有效的手续费金额（或留空表示没有手续费）'); return; }
 
     if (mode === 'add') {
         const uniqueId = Date.now() + Math.random();
@@ -111,6 +124,7 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
             desc: newDesc, ownerName: accTo.ownerName,
             isTransfer: true, relatedAccountId: newFromId, transferPairId: uniqueId, updatedAt: Date.now()
         });
+        if (newFee > 0) applyTransferFee(transactions.find(x => x.id === uniqueId), newFee, newDate, newFromId, newDesc);
         saveUserData(); triggerAutoSave(); loadAllData(); filterUserData();
         displayedTransactionCount = 100; renderAllTransactions(); renderAccounts();
         // 若在账户详情页，只刷新内容（不触发switchTab，保持modal开着）
@@ -119,6 +133,7 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
         $('edit-transfer-amount-out').value = '';
         $('edit-transfer-amount-in').value = '';
         $('edit-transfer-desc').value = '';
+        resetTransferFeeUI();
         if (verboseToast) showToast('已添加', 'success', 1500);
         if ($('view-stats').classList.contains('active-view')) renderStats();
     } else {
@@ -126,13 +141,8 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
         const tOut = transactions.find(x => x.id === id);
         if (!tOut || !tOut.isTransfer) { uiAlert('找不到转账记录'); return; }
 
-        let tIn;
-        if (tOut.transferPairId) {
-            tIn = transactions.find(x => x.transferPairId === tOut.transferPairId && x.type === 'income');
-        } else {
-            tIn = transactions.find(x => x.isTransfer && x.type === 'income' && x.date === tOut.date && x.accountId === tOut.relatedAccountId);
-        }
-        if (!tIn) { uiAlert('找不到配对的转账记录'); return; }
+        const tIn = resolveTransferPair(tOut).tIn;
+        if (!tIn) { uiAlert('找不到配对的转账记录（另一半可能已被删除）。请关闭后在转账记录上重新点开处理。'); return; }
 
         tOut.date = newDate; tOut.accountId = newFromId; tOut.relatedAccountId = newToId;
         tOut.amount = -Math.abs(newAmtOut); tOut.desc = newDesc;
@@ -141,6 +151,7 @@ $('edit-transfer-form').addEventListener('submit', (e) => {
         tIn.amount = Math.abs(newAmtIn); tIn.desc = newDesc;
         tIn.ownerName = accTo.ownerName;
         tIn.updatedAt = Date.now();
+        applyTransferFee(tOut, newFee, newDate, newFromId, newDesc);
 
         saveUserData(); triggerAutoSave(); filterUserData();
         displayedTransactionCount = 100;

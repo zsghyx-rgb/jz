@@ -94,6 +94,7 @@ function handleSplitBtn() {
 }
 
 function enterSplitMode() {
+    commitTransAmount();      // 金额框里如果是算式 (12+8)，先算成数字再读
     _inSplitMode = true;
     // 如果还没有拆分数据，从主表单读入第一行
     if (_splitData.length === 0) {
@@ -125,6 +126,7 @@ function enterSplitMode() {
     if (amtInput) { amtInput.removeAttribute('required'); }
     const catSel = $('edit-trans-category');
     if (catSel) catSel.removeAttribute('required');
+    amountPadSync();          // 拆分时金额由各分录相加，不需要数字键盘
 }
 
 function exitSplitMode() {
@@ -144,6 +146,7 @@ function exitSplitMode() {
     if (amtInput) { amtInput.setAttribute('required',''); amtInput.value = ''; }
     const catSel = $('edit-trans-category');
     if (catSel) catSel.setAttribute('required','');
+    amountPadSync();
 }
 
 /** 读取当前拆分数据供 submit 使用（返回 null = 单笔） */

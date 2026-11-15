@@ -197,11 +197,16 @@ function quickStatsDateFilter(p) {
 }
 
 function switchStatsCurrency(c, el) {
-    $$('#stats-currency-btns button').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
+    if (el) {
+        $$('#stats-currency-btns button').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+    }
     currentStatsFilter.currency = c;
     localStorage.setItem('APP_stats_currency', c);
     renderStats();
+    // 账户页净资产、交易页概览与当日合计使用同一个显示币种，立即同步刷新
+    if (typeof renderAllTransactions === 'function') renderAllTransactions();
+    if (typeof renderAccounts === 'function') renderAccounts();
 }
 
 function switchStatsUser(u) {
@@ -266,13 +271,15 @@ function renderStats() {
         _statsCache = { key: cacheKey, filtered, inc, exp };
     }
 
-    const hiddenClass = amountsHidden ? 'amount-hidden' : '';
+    const hiddenClass = summaryHidden ? 'amount-hidden' : '';   // 统计页顶部汇总：收入 / 支出 / 结余
+    // 顶部三个金额跟随币种选择显示货币单位（与账户页、交易页一致）
+    const statSymbol = CURRENCY_SYMBOLS[currentStatsFilter.currency] || currentStatsFilter.currency || '';
     $('stat-income-display').className = `stat-number is-income ${hiddenClass}`;
     $('stat-expense-display').className = `stat-number is-expense ${hiddenClass}`;
     $('stat-net-display').className = `stat-number is-net ${hiddenClass}`;
-    $('stat-income-display').innerText = formatAmount(inc, currentStatsFilter.currency);
-    $('stat-expense-display').innerText = formatAmount(Math.abs(exp), currentStatsFilter.currency);
-    $('stat-net-display').innerText = formatAmount(inc + exp, currentStatsFilter.currency);
+    $('stat-income-display').innerText = statSymbol + formatAmount(inc, currentStatsFilter.currency);
+    $('stat-expense-display').innerText = statSymbol + formatAmount(Math.abs(exp), currentStatsFilter.currency);
+    $('stat-net-display').innerText = statSymbol + formatAmount(inc + exp, currentStatsFilter.currency);
 
     // 概览子页才需要图表；在预算子页时只刷新预算
     if (!$('stats-pane-overview')?.classList.contains('active')) {

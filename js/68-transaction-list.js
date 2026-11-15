@@ -30,8 +30,10 @@ function _txDateLabel(dateStr) {
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-function _fmtRmb(n) {
-    return '¥' + formatAmount(Math.abs(Number(n) || 0), 'RMB');
+/** 按当前显示币种（与统计页一致）格式化金额。 */
+function _fmtMoney(n) {
+    const cur = currentStatsFilter.currency || 'RMB';
+    return (CURRENCY_SYMBOLS[cur] || '') + formatAmount(Math.abs(Number(n) || 0), cur);
 }
 
 /** 首页概览：本月支出大数字、收入、结余、预算进度（没有预算就不显示进度条）。 */
@@ -53,19 +55,19 @@ function renderTransactionsHero() {
         if (t.date < start || t.date > end) continue;
         const acc = accMap.get(String(t.accountId));
         if (!acc) continue;
-        const v = toRmb(parseFloat(t.amount) || 0, acc.currency);
+        const v = convertAmt(parseFloat(t.amount) || 0, acc.currency);
         if (v < 0) expense += -v; else income += v;
     }
 
-    const hidden = amountsHidden ? 'amount-hidden' : '';
+    const hidden = summaryHidden ? 'amount-hidden' : '';   // 首页顶部汇总：本月支出 / 收入 / 结余 / 预算
     const monthEl = $('tx-hero-month');
     if (monthEl) monthEl.textContent = `${m + 1}月`;
-    expEl.textContent = _fmtRmb(expense);
+    expEl.textContent = _fmtMoney(expense);
     expEl.className = 'tx-hero-amount ' + hidden;
     const incEl = $('tx-hero-income');
-    if (incEl) { incEl.textContent = _fmtRmb(income); incEl.className = hidden; }
+    if (incEl) { incEl.textContent = _fmtMoney(income); incEl.className = hidden; }
     const netEl = $('tx-hero-net');
-    if (netEl) { netEl.textContent = _fmtRmb(income - expense); netEl.className = hidden; }
+    if (netEl) { netEl.textContent = _fmtMoney(income - expense); netEl.className = hidden; }
 
     // 预算进度：只有设置过预算才显示；总预算优先，否则把各分类预算相加
     const budgetWrap = $('tx-hero-budget');
@@ -74,10 +76,10 @@ function renderTransactionsHero() {
     if (Array.isArray(budgets) && budgets.length) {
         const totalRow = budgets.find(b => b.category === '__total__');
         if (totalRow) {
-            totalBudget = toRmb(parseFloat(totalRow.amount) || 0, totalRow.currency || 'RMB');
+            totalBudget = convertAmt(parseFloat(totalRow.amount) || 0, totalRow.currency || 'RMB');
         } else {
             budgets.forEach(b => {
-                totalBudget += toRmb(parseFloat(b.amount) || 0, b.currency || 'RMB');
+                totalBudget += convertAmt(parseFloat(b.amount) || 0, b.currency || 'RMB');
             });
         }
     }
@@ -92,7 +94,7 @@ function renderTransactionsHero() {
     if (label) label.textContent = over ? '本月预算 · 已超支' : '本月预算';
     const text = $('tx-hero-budget-text');
     if (text) {
-        text.textContent = `${pct}% · ${over ? '超' : '余'} ${_fmtRmb(Math.abs(totalBudget - expense))}`;
+        text.textContent = `${pct}% · ${over ? '超' : '余'} ${_fmtMoney(Math.abs(totalBudget - expense))}`;
         text.className = hidden;
     }
     const fill = $('tx-hero-budget-fill');
@@ -110,11 +112,11 @@ function _dayTotalFor(dateStr, filtered, accMap) {
         if (t.date !== dateStr || t.isTransfer) continue;
         const acc = accMap.get(String(t.accountId));
         if (!acc) continue;
-        const v = toRmb(parseFloat(t.amount) || 0, acc.currency);
+        const v = convertAmt(parseFloat(t.amount) || 0, acc.currency);
         if (v < 0) expense += -v; else income += v;
     }
-    if (expense > 0) return { cls: 'is-expense', text: `支出 ${_fmtRmb(expense)}` };
-    if (income > 0) return { cls: 'is-income', text: `收入 ${_fmtRmb(income)}` };
+    if (expense > 0) return { cls: 'is-expense', text: `支出 ${_fmtMoney(expense)}` };
+    if (income > 0) return { cls: 'is-income', text: `收入 ${_fmtMoney(income)}` };
     return null;
 }
 
@@ -133,7 +135,7 @@ function _createDayGroup(dateStr, filtered, accMap) {
 }
 
 /** 单条交易行。结构：分类图标 / 分类 + 备注·账户 / 金额。 */
-function _buildTransactionCard(t, accMap, batchEditMode, batchSelectedIds) {
+function _buildTransactionCard(t, accMap, batchEditMode, batchSelectedIds, isOrphan) {
     const acc = accMap.get(String(t.accountId));
     if (!acc) return null;
 
@@ -145,7 +147,8 @@ function _buildTransactionCard(t, accMap, batchEditMode, batchSelectedIds) {
     const catName = isTransfer ? '转账' : (isSplit ? firstItem.category : (t.category || '未分类'));
     const meta = getCategoryIconByName(catName);
     const hidden = amountsHidden ? 'amount-hidden' : '';
-    const badge = getTxnBadge(t);
+    // isOrphan：转账的另一半已不存在（js/56-transfer-pair.js），加一个“配对缺失”小标签，点开可处理
+    const badge = getTxnBadge(t) + (isOrphan ? '<span class="txn-orphan-badge">配对缺失</span>' : '');
 
     const card = document.createElement('div');
     card.className = 'mobile-transaction-card';
@@ -175,9 +178,7 @@ function _buildTransactionCard(t, accMap, batchEditMode, batchSelectedIds) {
     if (isTransfer && t.type === 'expense') {
         const accTo = accMap.get(String(t.relatedAccountId));
         if (!accTo) return null;
-        let tIn = t.transferPairId
-            ? transactions.find(tx => tx.transferPairId === t.transferPairId && tx.type === 'income')
-            : transactions.find(tx => tx.isTransfer && tx.type === 'income' && tx.date === t.date && tx.relatedAccountId == t.accountId);
+        const tIn = resolveTransferPair(t).tIn;
         const amountIn = tIn ? Math.abs(tIn.amount) : Math.abs(t.amount);
         amountClass = 'is-transfer';
         amountText = `${CURRENCY_SYMBOLS[acc.currency] || ''}${formatAmount(Math.abs(t.amount), acc.currency)}`;
@@ -195,6 +196,13 @@ function _buildTransactionCard(t, accMap, batchEditMode, batchSelectedIds) {
         subText = accDisplayName;
         iconClass = meta.icon;
         iconColor = meta.color;
+        if (isTransfer) {
+            // 孤立的转入记录（转出那一半已不存在）：按转账样式显示，并写明来源账户
+            const fromAcc = accMap.get(String(t.relatedAccountId));
+            if (fromAcc) subText = `${getAccountDisplayName(fromAcc)} → ${accDisplayName}`;
+            iconClass = 'bi-arrow-left-right';
+            iconColor = 'var(--app-transfer)';
+        }
     }
 
     const tagHtml = tagsText
@@ -268,9 +276,10 @@ function renderAllTransactions() {
         let currentDate = null;
         let currentRows = null;
 
+        const orphanIds = getOrphanTransferIds();     // 另一半已不存在的转账记录
         displayData.forEach(t => {
-            // 转账只显示支出侧
-            if (t.isTransfer && t.type === 'income') return;
+            // 转账只显示转出侧；转入侧如果成了孤立记录（转出那一半已不存在），也要显示出来，否则看不见却照样计入余额
+            if (t.isTransfer && t.type === 'income' && !orphanIds.has(t.id)) return;
             const acc = accMap.get(String(t.accountId));
             if (!acc) return;
 
@@ -283,7 +292,7 @@ function renderAllTransactions() {
                 }
             }
 
-            const card = _buildTransactionCard(t, accMap, batchEditMode, batchSelectedIds);
+            const card = _buildTransactionCard(t, accMap, batchEditMode, batchSelectedIds, orphanIds.has(t.id));
             if (!card) return;
             if (groupByDate && currentRows) currentRows.appendChild(card);
             else frag.appendChild(card);
