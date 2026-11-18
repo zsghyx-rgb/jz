@@ -167,64 +167,6 @@ function renderTagChart(data) {
     chart.$meta = { sorted, data };
 }
 
-function renderTrendChart(data) {
-    const ctx = $('monthlyTrendChart');
-    if (!ctx) return;
-    const accMap = new Map(accounts.map(a => [String(a.id), a]));
-    const months = {};
-    data.forEach(t => {
-        if (t.isTransfer) return;
-        const m = t.date.substring(0, 7);
-        if (!months[m]) months[m] = { inc: 0, exp: 0 };
-        const acc = accMap.get(String(t.accountId));
-        if (!acc) return;
-        let amt = convertAmt(t.amount, acc.currency);
-        if (amt > 0) months[m].inc += amt; else months[m].exp += Math.abs(amt);
-    });
-    const labels = Object.keys(months).sort();
-    const t = getChartTheme();
-    const canvas = $('monthlyTrendChart');
-    const targetW = Math.max(labels.length * 60, 400);
-    if (!chartInstances.trend) canvas.width = targetW;
-    else if (canvas.width !== targetW) { canvas.width = targetW; chartInstances.trend.resize(); }
-    const chart = upsertChart('trend', ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                { label: '收入', data: labels.map(m => months[m].inc), backgroundColor: t.income, type: 'bar' },
-                { label: '支出', data: labels.map(m => months[m].exp), backgroundColor: t.expense, type: 'bar' },
-                { label: '结余', data: labels.map(m => months[m].inc - months[m].exp), borderColor: t.primary, type: 'line', fill: false, tension: 0.4 }
-            ]
-        },
-        options: {
-            maintainAspectRatio: false,
-            plugins: { legend: { display: true, labels: { color: t.text } } },
-            scales: {
-                x: { grid: { color: t.grid }, ticks: { color: t.muted } },
-                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } }
-            },
-            animation: { duration: 0 },
-            onClick(e, els) {
-                const meta = chartInstances.trend && chartInstances.trend.$meta;
-                if (!meta || !els.length) return;
-                const el = els[0];
-                const month = meta.labels[el.index];
-                const dsLabel = chartInstances.trend.data.datasets[el.datasetIndex].label;
-                if (dsLabel === '结余') return;
-                const isIncome = dsLabel === '收入';
-                const txs = meta.data.filter(t => {
-                    if (t.isTransfer) return false;
-                    if (!t.date.startsWith(month)) return false;
-                    return isIncome ? t.amount > 0 : t.amount < 0;
-                });
-                showChartDrawer(`月度收支趋势 · ${month} · ${dsLabel}`, txs);
-            }
-        }
-    });
-    chart.$meta = { labels, data };
-}
-
 /**
  * 净资产曲线：从“每个日期 × 每个账户 × 全部交易”改为一次线性扫描。
  * 原复杂度 O(日期数 × 账户数 × 交易数)，三年数据下可达数千万次比较。
