@@ -40,7 +40,7 @@
         }
     })();
     </script>
-    <title id="app-title">记一笔 v5.1.1</title>
+    <title id="app-title">记一笔 v5.1.2</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -207,7 +207,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.1.1</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.1.2</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -506,49 +506,79 @@
 
             <!-- 概览子页 -->
             <div id="stats-pane-overview" class="stats-sub-pane active">
-                <div class="stats-hero clickable-amount" onclick="toggleAmountVisibility()">
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="stat-label">收入</div>
-                            <span class="stat-number is-income" id="stat-income-display">0.00</span>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-label">支出</div>
-                            <span class="stat-number is-expense" id="stat-expense-display">0.00</span>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-label">结余</div>
-                            <span class="stat-number is-net" id="stat-net-display">0.00</span>
-                        </div>
+                <!-- 5.1.2 概览卡：本月（所选期间）支出大字 + 对比上期 + 日均 + 预算进度；点击切换金额显示（沿用三态） -->
+                <div class="stats-overview stats-hero clickable-amount" id="stats-overview" onclick="toggleAmountVisibility()" title="点击隐藏/显示金额">
+                    <div class="so-top"><span id="so-label">本月支出</span><span id="so-sub"></span></div>
+                    <div class="so-amount stat-number is-expense" id="stat-expense-display">0.00</div>
+                    <div class="so-chips" id="so-chips"></div>
+                    <div class="so-budget" id="so-budget" style="display:none;"></div>
+                    <div class="so-row">
+                        <div><span class="so-key">收入</span><b class="stat-number is-income" id="stat-income-display">0.00</b></div>
+                        <div><span class="so-key">结余</span><b class="stat-number is-net" id="stat-net-display">0.00</b></div>
                     </div>
                 </div>
                 <div class="row g-3" id="charts-container">
-                    <div class="col-md-6">
+                    <!-- 主图表 -->
+                    <div class="col-12 stats-chart-slot" id="chart-card-category">
                         <div class="card shadow-sm chart-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                    <h6 class="card-title mb-0">分类占比</h6>
+                                    <span class="text-muted small" id="cat-share-sub"></span>
+                                </div>
+                                <div class="cat-donut"><canvas id="categoryShareChart"></canvas><div class="cat-donut-center" id="cat-donut-center"></div></div>
+                                <div class="cat-share-list" id="cat-share-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 stats-chart-slot" id="chart-card-trend">
+                        <div class="card shadow-sm chart-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                    <h6 class="card-title mb-0" id="trend6-title">月度收支趋势</h6>
+                                    <span class="text-muted small">点柱子切换到该月</span>
+                                </div>
+                                <div style="height:210px;"><canvas id="trend6Chart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 stats-chart-slot" id="chart-card-daily">
+                        <div class="card shadow-sm chart-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                    <h6 class="card-title mb-0" id="daily-title">每日支出</h6>
+                                    <span class="text-muted small" id="daily-sub"></span>
+                                </div>
+                                <div style="height:150px;"><canvas id="dailyChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 更多图表（折叠）：设置 → 统计图表 里可以逐个开关，也可以设为默认展开 -->
+                    <div class="col-12" id="stats-more-wrap">
+                        <button type="button" class="stats-more-toggle" id="stats-more-toggle" onclick="toggleStatsMore()">
+                            <span><i class="bi bi-grid-1x2"></i> 更多图表 <span class="stats-more-count" id="stats-more-count"></span></span>
+                            <i class="bi bi-chevron-down" id="stats-more-chevron"></i>
+                        </button>
+                        <div class="stats-more-body" id="stats-more-body" style="display:none;">
+                            <div class="row g-3 mt-0">
+                        <div class="col-12 stats-chart-slot" id="chart-card-ranking">
+                            <div class="card shadow-sm chart-card">
                             <div class="card-body">
                                 <h6 class="card-title">支出排行</h6>
                                 <div style="height:350px;"><canvas id="expenseCategoryChart"></canvas></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card shadow-sm chart-card">
+                        </div>
+                        <div class="col-12 stats-chart-slot" id="chart-card-tags">
+                            <div class="card shadow-sm chart-card">
                             <div class="card-body">
                                 <h6 class="card-title">标签统计</h6>
                                 <div style="height:350px;"><canvas id="tagStatsChart"></canvas></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="card shadow-sm chart-card">
-                            <div class="card-body">
-                                <h6 class="card-title">月度收支趋势</h6>
-                                <div class="chart-scroll-container" style="height:350px;"><canvas id="monthlyTrendChart"></canvas></div>
-                            </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="card shadow-sm chart-card">
+                        <div class="col-12 stats-chart-slot" id="chart-card-catTrend">
+                            <div class="card shadow-sm chart-card">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="card-title mb-0">单类别趋势</h6>
@@ -557,17 +587,17 @@
                                 <div class="chart-scroll-container" style="height:300px;"><canvas id="categoryTrendChart"></canvas></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="card shadow-sm chart-card">
+                        </div>
+                        <div class="col-12 stats-chart-slot" id="chart-card-totalTrend">
+                            <div class="card shadow-sm chart-card">
                             <div class="card-body">
                                 <h6 class="card-title">总支出趋势</h6>
                                 <div class="chart-scroll-container" style="height:300px;"><canvas id="totalExpenseTrendChart"></canvas></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="card shadow-sm chart-card">
+                        </div>
+                        <div class="col-12 stats-chart-slot" id="chart-card-assets">
+                            <div class="card shadow-sm chart-card">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="card-title mb-0">历史资产趋势</h6>
@@ -585,6 +615,9 @@
                                 <div id="history-chart-wrapper" class="d-none" style="height:350px;">
                                     <canvas id="assetHistoryChart"></canvas>
                                 </div>
+                            </div>
+                        </div>
+                        </div>
                             </div>
                         </div>
                     </div>
@@ -661,6 +694,11 @@
                         <span>外观与主题</span>
                         <i class="bi bi-chevron-right"></i>
                     </div>
+                    <div class="settings-menu-item" onclick="showSettingsSubpage('stats-charts')">
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>统计图表</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
                     <div class="settings-menu-item" onclick="showSettingsSubpage('about')">
                         <i class="bi bi-info-circle"></i>
                         <span>关于</span>
@@ -728,6 +766,39 @@
                         <span class="sync-pos-tip">长按“有修改尚未同步”提示，再拖动即可移动；位置只保存在本机。</span>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="sync-bar-reset-btn" onclick="resetSyncBarPos()" disabled>恢复默认</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Sub-page: 统计图表（5.1.2；只保存在本机，不写入加密数据、不参与同步） -->
+            <div id="settings-sub-stats-charts" class="settings-subpage">
+                <div class="subpage-header">
+                    <i class="bi bi-arrow-left" onclick="showSettingsMenu()"></i>
+                    <span>统计图表</span>
+                </div>
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">主要图表</span>
+                        <span class="appearance-block-hint">统计页“概览”里直接显示</span>
+                    </div>
+                    <div class="chart-switch-list" id="chart-switch-main"></div>
+                </div>
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">更多图表</span>
+                        <span class="appearance-block-hint">收在“更多图表”折叠区里</span>
+                    </div>
+                    <div class="chart-switch-list" id="chart-switch-more"></div>
+                    <div class="chart-switch-row chart-switch-open">
+                        <div class="chart-switch-text">
+                            <div class="chart-switch-name">“更多图表”默认展开</div>
+                            <div class="chart-switch-desc">关闭时进入统计页只显示主要图表，需要时再点开</div>
+                        </div>
+                        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="chart-switch-moreopen" onchange="setStatsMoreOpenDefault(this.checked)"></div>
+                    </div>
+                </div>
+                <div class="px-1 pt-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetStatsChartPrefs()"><i class="bi bi-arrow-counterclockwise"></i> 恢复默认</button>
+                    <span class="text-muted small ms-2">概览卡（支出 / 收入 / 结余）始终显示</span>
                 </div>
             </div>
 
@@ -989,7 +1060,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.1.1</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.1.2</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -1581,6 +1652,7 @@
 <script src="js/68-transaction-list.js"></script>
 <script src="js/70-attachments-hints.js"></script>
 <script src="js/75-stats-core.js"></script>
+<script src="js/76-stats-overview.js"></script>
 <script src="js/78-backup-restore.js"></script>
 <script src="js/80-charts.js"></script>
 <script src="js/85-navigation-settings.js"></script>
