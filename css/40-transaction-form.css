@@ -26,6 +26,8 @@
     flex: 1 !important;
     min-height: 0;
     padding-top: 6px !important;
+    /* 底部不再留 16px：保存栏一直贴到屏幕底边，给中间的分类/备注/标签区腾出空间 */
+    padding-bottom: 0 !important;
     touch-action: pan-y;
     overscroll-behavior-x: none;
 }
@@ -575,13 +577,19 @@
 /* 底部固定栏：仅保留操作按钮（金额已移至顶部卡片）。顶部内边距缩小，
    让分隔线贴近按钮；额外的留白空间改由 .trans-scroll-area 的底部内边距承担，
    这样空白会留在"图片区和分隔线之间"，而不是"分隔线和按钮之间" */
-.trans-amount-bar.tm-footer-bar { padding-top: 10px; }
+.trans-amount-bar.tm-footer-bar {
+    padding-top: 8px;
+    /* 去掉按钮后面那条深色底板：按钮直接浮在弹窗背景上，和上方内容连成一片 */
+    background: transparent;
+    border-top: none;
+}
 
 /* ═══════════ 5.1.1：新增/编辑收支 —— 大金额、数字键盘、日期快捷、保存并再记、备注联想 ═══════════ */
 .tm-amount-card.tm-amount-big { padding: 14px 16px 10px; cursor: pointer; }
-.tm-amount-card.tm-amount-big .amount-currency { font-size: 1.8rem; }
+/* 收支金额字号与转账金额保持一致（转账实际显示：符号 1.6rem / 数字 1.6rem） */
+.tm-amount-card.tm-amount-big .amount-currency { font-size: 1.6rem; }
 .tm-amount-card.tm-amount-big .amount-input-v2 {
-    font-size: 2.6rem; font-weight: 700; text-align: left;
+    font-size: 1.6rem; font-weight: 700; text-align: left;
     flex: 1; min-width: 0; padding: 0; line-height: 1.15;
 }
 .tm-amount-card.tm-amount-big .amount-input-v2::placeholder { color: var(--bs-secondary-color); opacity: .45; }
