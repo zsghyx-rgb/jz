@@ -361,6 +361,7 @@ function renderTrend6Chart() {
         if (v > 0) a.inc += v; else a.exp += Math.abs(v);
     });
     const th = getChartTheme();
+    const cur = currentStatsFilter.currency, sym = CURRENCY_SYMBOLS[cur] || cur || '';
     const sel = statsNavMode === 'month' ? key({ y: statsNavYear, m: statsNavMonth }) : '';
     const shade = (color, k) => (!sel || key(months.find(x => key(x) === k)) === sel) ? color : chartAlpha(color, 0.45);
     const labels = months.map(x => (statsNavMode !== 'year' && x.m === 0) ? `${x.y}年1月` : `${x.m + 1}月`);   // 1 月带上年份，方便跨年时分辨
@@ -373,8 +374,11 @@ function renderTrend6Chart() {
         ] },
         options: {
             maintainAspectRatio: false, animation: { duration: 0 },
-            plugins: { legend: { display: true, position: 'bottom', labels: { color: th.text, boxWidth: 10, boxHeight: 10 } } },
-            scales: { x: { grid: { display: false }, ticks: { color: th.muted } }, y: { beginAtZero: true, grid: { color: th.grid }, ticks: { color: th.muted, callback: v => _compactMoney(v) } } },
+            plugins: {
+                legend: { display: true, position: 'bottom', labels: { color: th.text, boxWidth: 10, boxHeight: 10 } },
+                tooltip: { callbacks: { label: c => ` ${c.dataset.label} ${sym}${formatAmount(c.parsed.y, cur)}` } }
+            },
+            scales: { x: { grid: { display: false }, ticks: { color: th.muted } }, y: { beginAtZero: true, grid: { color: th.grid }, ticks: { color: th.muted, callback: v => sym + _compactMoney(v) } } },
             onClick(e, els) { if (els.length) { const x = months[els[0].index]; if (x) statsGoToMonth(x.y, x.m); } }
         }
     });
@@ -425,7 +429,7 @@ function renderDailyChart() {
         options: {
             maintainAspectRatio: false, animation: { duration: 0 },
             plugins: { legend: { display: false }, tooltip: { callbacks: { title: c => days[c[0].dataIndex], label: c => c.datasetIndex === 0 ? ` 支出 ${sym}${formatAmount(c.parsed.y, cur)}` : ` 日均 ${sym}${formatAmount(c.parsed.y, cur)}` } } },
-            scales: { x: { grid: { display: false }, ticks: { color: th.muted, autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } }, y: { beginAtZero: true, grid: { color: th.grid }, ticks: { color: th.muted, maxTicksLimit: 4, callback: v => _compactMoney(v) } } },
+            scales: { x: { grid: { display: false }, ticks: { color: th.muted, autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } }, y: { beginAtZero: true, grid: { color: th.grid }, ticks: { color: th.muted, maxTicksLimit: 4, callback: v => sym + _compactMoney(v) } } },
             onClick(e, els) {
                 if (!els.length || els[0].datasetIndex !== 0) return;
                 const day = days[els[0].index];

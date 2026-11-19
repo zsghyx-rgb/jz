@@ -63,12 +63,21 @@ function expandTxByTag(t, tag) {
 }
 
 // ─────────────────────────────────────────────────────────────
+/** 统计图当前显示币种：{ cur, sym }，用于坐标轴刻度和提示框 */
+function _chartCurrency() {
+    const cur = (typeof currentStatsFilter !== 'undefined' && currentStatsFilter && currentStatsFilter.currency) || 'RMB';
+    return { cur: cur, sym: CURRENCY_SYMBOLS[cur] || cur || '' };
+}
+
 /** 复用已有图表实例：数据没变时只更新数据，不再 destroy + new Chart */
 function upsertChart(key, canvas, config) {
     const existing = chartInstances[key];
     const existingCanvas = existing && existing.ctx && existing.ctx.canvas;
     if (existing && existingCanvas === canvas) {
         existing.data = config.data;
+        // options 里带有币种符号、坐标轴格式和 onClick 闭包，切换币种 / 日期范围后必须一起更新，
+        // 否则图表数据换了新币种，刻度和提示框还停在旧币种。
+        existing.options = config.options;
         existing.update('none');
         return existing;
     }
@@ -97,14 +106,18 @@ function renderExpenseChart(data) {
     });
     const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
     const t = getChartTheme();
+    const { cur, sym } = _chartCurrency();
     const chart = upsertChart('expense', ctx, {
         type: 'bar',
         data: { labels: sorted.map(x => x[0]), datasets: [{ label: '支出', data: sorted.map(x => x[1]), backgroundColor: t.expense }] },
         options: {
             indexAxis: 'y', maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => ` ${sym}${formatAmount(c.parsed.x, cur)}` } }
+            },
             scales: {
-                x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } },
+                x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: v => sym + _compactMoney(v) } },
                 y: { grid: { display: false }, ticks: { color: t.text } }
             }, animation: { duration: 0 },
             onClick(e, els) {
@@ -145,14 +158,18 @@ function renderTagChart(data) {
     });
     const sorted = Object.entries(tags).sort((a, b) => b[1] - a[1]);
     const t = getChartTheme();
+    const { cur, sym } = _chartCurrency();
     const chart = upsertChart('tags', ctx, {
         type: 'bar',
         data: { labels: sorted.map(x => x[0]), datasets: [{ label: '金额', data: sorted.map(x => x[1]), backgroundColor: t.primary }] },
         options: {
             maintainAspectRatio: false, indexAxis: 'y',
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => ` ${sym}${formatAmount(c.parsed.x, cur)}` } }
+            },
             scales: {
-                x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } },
+                x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: v => sym + _compactMoney(v) } },
                 y: { grid: { display: false }, ticks: { color: t.text } }
             }, animation: { duration: 0 },
             onClick(e, els) {
@@ -178,12 +195,12 @@ function buildNetWorthSeries() {
         const t = transactions[i];
         const acc = accMap.get(String(t.accountId));
         if (!acc) continue;
-        const v = toRmb(parseFloat(t.amount) || 0, acc.currency);
+        const v = convertAmt(parseFloat(t.amount) || 0, acc.currency);
         deltaByDate.set(t.date, (deltaByDate.get(t.date) || 0) + v);
     }
     let running = 0;
     for (let i = 0; i < accounts.length; i++) {
-        running += toRmb(parseFloat(accounts[i].initialBalance) || 0, accounts[i].currency);
+        running += convertAmt(parseFloat(accounts[i].initialBalance) || 0, accounts[i].currency);
     }
     const dates = [...deltaByDate.keys()].sort();
     const raw = new Array(dates.length);
@@ -198,6 +215,7 @@ function getNetWorthSeries() {
     const key = [
         _statsDataVersion,
         currentAssetAggregation,
+        currentStatsFilter.currency,
         JSON.stringify(exchangeRates),
         accounts.map(a => a.id + ':' + (a.initialBalance ?? 0) + ':' + (a.currency || '')).join('|'),
         transactions.length,
@@ -213,10 +231,10 @@ function getNetWorthSeries() {
     } else if (currentAssetAggregation === 'week') {
         const map = {};
         raw.forEach(x => {
-            const d = new Date(x.date);
+            const d = new Date(x.date + 'T00:00:00');   // 按本地零点解析，避免 UTC 换算把周起始日挪到前一天
             const ws = new Date(d);
             ws.setDate(d.getDate() - d.getDay());
-            map[ws.toISOString().split('T')[0]] = x.value;
+            map[formatLocal(ws)] = x.value;
         });
         labels = Object.keys(map).sort();
         data = labels.map(k => map[k]);
@@ -239,16 +257,20 @@ function renderAssetHistoryChart() {
 
     const series = getNetWorthSeries();
     const t = getChartTheme();
+    const { cur, sym } = _chartCurrency();
     const chart = upsertChart('assetHistory', ctx, {
         type: 'line',
         data: { labels: series.labels, datasets: [{ label: '净资产', data: series.data, borderColor: t.primary, fill: true, backgroundColor: chartAlpha(t.primary, 0.12), tension: 0.4 }] },
         options: {
             maintainAspectRatio: false,
             elements: { point: { radius: 0 } },
-            plugins: { legend: { display: true, labels: { color: t.text } } },
+            plugins: {
+                legend: { display: true, labels: { color: t.text } },
+                tooltip: { callbacks: { label: c => ` 净资产 ${sym}${formatAmount(c.parsed.y, cur)}` } }
+            },
             scales: {
                 x: { grid: { color: t.grid }, ticks: { color: t.muted } },
-                y: { grid: { color: t.grid }, ticks: { color: t.muted } }
+                y: { grid: { color: t.grid }, ticks: { color: t.muted, callback: v => sym + _compactMoney(v) } }
             },
             animation: { duration: 0 }
         }
@@ -277,6 +299,7 @@ function renderCategoryTrendChart(data) {
     });
     const labels = Object.keys(months).sort();
     const t = getChartTheme();
+    const { cur, sym } = _chartCurrency();
     const canvas = $('categoryTrendChart');
     const targetW = Math.max(labels.length * 60, 400);
     if (!chartInstances.cattrend) canvas.width = targetW;
@@ -286,10 +309,13 @@ function renderCategoryTrendChart(data) {
         data: { labels, datasets: [{ label: cat, data: labels.map(m => months[m]), borderColor: t.transfer, backgroundColor: chartAlpha(t.transfer, 0.45), fill: true, tension: 0.4 }] },
         options: {
             maintainAspectRatio: false,
-            plugins: { legend: { display: true, labels: { color: t.text } } },
+            plugins: {
+                legend: { display: true, labels: { color: t.text } },
+                tooltip: { callbacks: { label: c => ` ${sym}${formatAmount(c.parsed.y, cur)}` } }
+            },
             scales: {
                 x: { grid: { color: t.grid }, ticks: { color: t.muted } },
-                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } }
+                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: v => sym + _compactMoney(v) } }
             },
             animation: { duration: 0 },
             onClick(e, els) {
@@ -320,6 +346,7 @@ function renderTotalExpenseTrendChart(data) {
     });
     const labels = Object.keys(months).sort();
     const t = getChartTheme();
+    const { cur, sym } = _chartCurrency();
     const canvas = $('totalExpenseTrendChart');
     const targetW = Math.max(labels.length * 60, 400);
     if (!chartInstances.totalExpense) canvas.width = targetW;
@@ -329,10 +356,13 @@ function renderTotalExpenseTrendChart(data) {
         data: { labels, datasets: [{ label: '总支出', data: labels.map(m => months[m]), borderColor: t.expense, backgroundColor: chartAlpha(t.expense, 0.42), fill: true, tension: 0.4 }] },
         options: {
             maintainAspectRatio: false,
-            plugins: { legend: { display: true, labels: { color: t.text } } },
+            plugins: {
+                legend: { display: true, labels: { color: t.text } },
+                tooltip: { callbacks: { label: c => ` ${sym}${formatAmount(c.parsed.y, cur)}` } }
+            },
             scales: {
                 x: { grid: { color: t.grid }, ticks: { color: t.muted } },
-                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted } }
+                y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: v => sym + _compactMoney(v) } }
             }, animation: { duration: 0 },
             onClick(e, els) {
                 const meta = chartInstances.totalExpense && chartInstances.totalExpense.$meta;
