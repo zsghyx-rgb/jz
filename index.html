@@ -40,7 +40,7 @@
         }
     })();
     </script>
-    <title id="app-title">记一笔 v5.1.3</title>
+    <title id="app-title">记一笔 v5.1.4</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -207,7 +207,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.1.3</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.1.4</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -1060,7 +1060,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.1.3</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.1.4</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -1385,7 +1385,7 @@
                                 <div class="tm-card-header d-flex justify-content-between align-items-center">
                                     <span>所有分类</span>
                                     <button type="button" id="split-toggle-btn" class="chip-split-btn tm-split-btn" title="拆分账单" onclick="handleSplitBtn()">
-                                        <i class="bi bi-scissors"></i>
+                                        <i class="bi bi-scissors"></i><span>拆分</span>
                                     </button>
                                 </div>
                                 <select class="form-select" id="edit-trans-category" required="" style="display:none;"></select>
@@ -1393,16 +1393,23 @@
                             </div>
                         </div>
 
-                        <!-- 拆分模式分录区 -->
+                        <!-- 拆分模式分录区（5.1.4）：固定头部（项数/添加/退出）+ 可滚动分录 + 固定合计 -->
                         <div id="split-items-section">
+                            <div id="split-mode-bar">
+                                <span class="split-mode-title" id="split-mode-title">拆分账单</span>
+                                <div class="split-mode-actions" id="split-mode-actions">
+                                    <button type="button" class="split-add-btn" id="split-add-btn" onclick="addSplitItemRow()">
+                                        <i class="bi bi-plus-lg"></i> 添加分录
+                                    </button>
+                                    <button type="button" class="split-exit-btn" id="split-exit-btn" onclick="requestExitSplitMode()">退出拆分</button>
+                                </div>
+                            </div>
                             <div id="split-items-list"></div>
-                            <div class="d-flex align-items-center gap-2 py-2 border-top">
-                                <button type="button" class="btn btn-outline-secondary btn-sm" id="split-attach-btn"
-                                        onclick="document.getElementById('attachment-file-input').click()">
-                                    <i class="bi bi-image"></i> 添加附件
-                                </button>
-                                <span class="ms-auto small text-muted">合计：</span>
-                                <span id="split-total-amt" class="fw-bold text-danger" style="font-size:1rem;">0.00</span>
+                            <div class="split-summary" id="split-summary">
+                                <span class="split-summary-label">合计</span>
+                                <span id="split-total-amt" class="split-summary-total"></span>
+                                <span id="split-target-hint" class="split-summary-hint"></span>
+                                <button type="button" id="split-fill-btn" class="split-fill-btn" style="display:none;" onclick="fillSplitRemainder()">补足</button>
                             </div>
                         </div>
 

@@ -68,23 +68,144 @@
 #split-items-section.split-active {
     display: flex;
 }
+/* 拆分头部：项数 + 添加分录 + 退出拆分，固定在列表上方不随滚动 */
+#split-mode-bar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 2px 6px;
+}
+.split-mode-title {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+.split-mode-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.split-add-btn,
+.split-exit-btn {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 0.74rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.split-add-btn {
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.35);
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--bs-primary);
+}
+.split-exit-btn {
+    border: 1px solid var(--bs-border-color);
+    background: transparent;
+    color: var(--bs-secondary-color);
+}
+.split-add-btn:active, .split-exit-btn:active { transform: scale(0.97); }
+
 #split-items-list {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
-    padding: 4px 0;
+    padding: 2px 0 4px;
 }
-/* 分录卡片 Grid 布局 — 两行共用列宽 */
+/* 分录卡片 Grid：分类 / 金额 / 删除 一行，标签 / 备注 第二行 */
 .split-item-card .split-card-grid {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 1.5fr 30px;
-    gap: 4px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 28px;
+    gap: 6px;
     align-items: center;
-    margin-bottom: 4px;
 }
+.split-card-cat  { grid-column: 1; }
+.split-card-amt  { grid-column: 2; }
+.split-card-del  { grid-column: 3; display: flex; justify-content: center; }
 .split-card-tags { grid-column: 1; }
 .split-card-desc { grid-column: 2 / 4; }
-.split-card-del  { grid-column: 4; display: flex; justify-content: center; }
+.split-card-tags, .split-card-desc { margin-top: 6px; }
+
+/* 金额输入：币种符号 + 输入框，与左侧下拉同高（2.1rem） */
+.split-amt-wrap {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 2.1rem;
+    padding: 0 6px;
+    min-width: 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius, 0.375rem);
+    background: var(--bs-body-bg);
+}
+.split-amt-wrap:focus-within {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.18rem rgba(var(--bs-primary-rgb), 0.15);
+}
+.split-amt-sym {
+    flex-shrink: 0;
+    font-size: 0.76rem;
+    color: var(--bs-secondary-color);
+}
+.split-amt-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    padding: 0;
+    font-size: 0.9rem;
+    color: var(--bs-body-color);
+    font-variant-numeric: tabular-nums;
+}
+.split-amt-input::placeholder { color: var(--bs-secondary-color); opacity: 0.55; }
+.split-card-del button:disabled { opacity: 0.3; pointer-events: none; }
+
+/* 底部合计：固定在分录列表下方 */
+.split-summary {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 2px 2px;
+    border-top: 1px solid var(--bs-border-color);
+    font-size: 0.8rem;
+}
+.split-summary-label { color: var(--bs-secondary-color); }
+.split-summary-total {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--app-expense);
+    font-variant-numeric: tabular-nums;
+}
+#split-target-hint { font-size: 0.74rem; margin-left: auto; }
+#split-target-hint.is-done  { color: var(--app-income); }
+#split-target-hint.is-short { color: var(--bs-secondary-color); }
+#split-target-hint.is-over  { color: var(--app-expense); }
+.split-fill-btn {
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 7px;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.35);
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--bs-primary);
+    font-size: 0.72rem;
+    line-height: 1;
+}
+
+/* 拆分模式：顶部金额卡片隐藏（金额由分录合计得出），空间让给分录；
+   附件卡片排到分录前面，让“合计”始终贴着保存栏 */
+#edit-transaction-form.split-mode #trans-amount-card { display: none; }
+#edit-transaction-form.split-mode .trans-scroll-area > #attachment-section { order: 1; }
+#edit-transaction-form.split-mode .trans-scroll-area > #split-items-section { order: 2; }
+.trans-modal-v2.view-only .split-mode-actions,
+.trans-modal-v2.view-only #split-fill-btn { display: none !important; }
 
 /* 分录条目高亮：左侧彩色竖线 + 极淡底色 */
 .split-item-card {
@@ -148,7 +269,6 @@
     border-top: 1px solid var(--bs-border-color);
     background: var(--bs-body-bg);
 }
-.trans-amount-bar.split-mode .amount-input-row { display: none; }
 
 /* 日期 / 账户 / 拆分 chip 行 */
 .trans-chip-row { display: flex; gap: 6px; margin-bottom: 10px; align-items: stretch; }
@@ -524,7 +644,18 @@
 }
 .tm-cat-card .cat-icon-circle { width: 40px; height: 40px; font-size: 1rem; }
 .tm-cat-card .cat-grid-item .cat-name { font-size: 0.64rem; }
-.tm-split-btn { width: 26px; height: 26px; border-radius: 8px; font-size: 0.8rem; }
+/* 拆分入口：分类卡头部的文字按钮（原 26px 图标太小，手机上不好点） */
+.tm-split-btn {
+    width: auto;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 0.76rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
 
 /* 备注行 */
 .tm-desc-row { cursor: text; }

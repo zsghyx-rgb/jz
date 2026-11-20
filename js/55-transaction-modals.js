@@ -47,6 +47,8 @@ function _switchTransTabCore(tab, skipReset) {
     });
 
     if (isTransfer) {
+        // 切到转账表单时退出拆分（拆分只在收支表单里）
+        if (_inSplitMode) exitSplitMode();
         // 转账 tab：填充账户下拉框
         if (!skipReset) {
             fillTransferSelects(null, null);
@@ -68,9 +70,7 @@ function _switchTransTabCore(tab, skipReset) {
         }
         updateEditFormCategories();
         const attachSec = $('attachment-section');
-        const attachBtn = $('attachment-btn');
         if (attachSec) attachSec.style.display = tab === 'expense' ? '' : 'none';
-        if (attachBtn) attachBtn.style.display = tab === 'expense' ? '' : 'none';
         // 拆分按钮仅在支出时显示
         const splitBtn = $('split-toggle-btn');
         if (splitBtn) splitBtn.style.display = tab === 'expense' ? '' : 'none';
@@ -417,7 +417,7 @@ function openEditTransaction(id) {
     switchTransTab(t.type, true);
     // 加载分录
     if (t.items && t.items.length > 1) {
-        loadInlineItems(t.items, t.type);
+        loadInlineItems(t.items);
     } else {
         resetInlineItems();
         $('edit-trans-category').value = t.category;
