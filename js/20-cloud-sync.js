@@ -86,8 +86,18 @@ function incSaveState(st) {
 
 /* ── 把内存数据拆成“一条条记录” ── */
 function incConfigPayload(d) {
+    // users 一定要把“有数据的桶”也算进去：否则某台设备没应用过别人的配置时，
+    // 它推上去的用户列表会缺人，接着又把别人的用户覆盖掉。
+    const removed = d.removedUsers || {};
+    const seen = new Set(), users = [];
+    (d.users || []).forEach(u => {
+        if (typeof u !== 'string' || !u || seen.has(u) || incUserRemoved(removed, u)) return;
+        seen.add(u); users.push(u);
+    });
+    incBucketNamesWithData(d).forEach(u => { if (!seen.has(u)) { seen.add(u); users.push(u); } });
     return {
-        users: d.users || [],
+        users: users,
+        removedUsers: removed,
         categories: d.categories || null,
         exchangeRates: d.exchangeRates || null,
         budgets: d.budgets || [],
@@ -154,6 +164,87 @@ function incFindLocalById(data, id) {
     return null;
 }
 
+/** 把某个 id 从「除了 exceptOwner 之外」的所有数据桶里摘出来（带内容返回）。
+ *  用于记录换了归属的情况：转账改了转入账户、用户改名等。云端一行只有一个 owner，
+ *  本地也必须只有一份，否则同一笔会在两个用户的桶里各存一份，余额被算两次。 */
+function incDetachById(data, id, exceptOwner) {
+    let found = null;
+    Object.entries(data.allUserData || {}).forEach(([u, ud]) => {
+        if (u === exceptOwner || !ud) return;
+        Object.values(INC_KIND_LIST).forEach(ln => {
+            const arr = ud[ln];
+            if (!arr || !arr.length) return;
+            for (let i = arr.length - 1; i >= 0; i--) {
+                if (String(arr[i].id) === id) { found = arr.splice(i, 1)[0]; }
+            }
+        });
+    });
+    return found;
+}
+
+/** 真正存了数据的桶名（空桶不算，避免把已删除的空用户当成“有数据的用户”复活） */
+function incBucketNamesWithData(data) {
+    return Object.keys(data.allUserData || {}).filter(u => {
+        const ud = data.allUserData[u] || {};
+        return (ud.accounts && ud.accounts.length) ||
+               (ud.transactions && ud.transactions.length) ||
+               (ud.plannedTransactions && ud.plannedTransactions.length);
+    });
+}
+
+/**
+ * 清掉「已标记删除、又完全没有数据」的用户（改名留下的旧名字就是这种空桶）。
+ * 改名时旧名字会先被标记删除，但记录要等这一轮同步逐条挪到新名字下之后桶才空，
+ * 所以必须在整轮合并结束之后再清，否则旧名字会一直挂在用户列表里（“3 个用户变 4 个”）。
+ * 新加的空用户没有删除标记，不会被误清；当前登录用户永不清。
+ */
+function incPruneRemovedUsers(data) {
+    const removed = data.removedUsers || {};
+    const all = data.allUserData || {};
+    let changed = false;
+    (data.users || []).slice().forEach(u => {
+        if (!u || u === currentUserName) return;
+        if (!incUserRemoved(removed, u)) return;
+        const ud = all[u] || {};
+        const hasData = (ud.accounts || []).length || (ud.transactions || []).length || (ud.plannedTransactions || []).length;
+        if (hasData) return;
+        data.users = data.users.filter(x => x !== u);
+        delete all[u];
+        changed = true;
+    });
+    return changed;
+}
+
+/**
+ * 改名后把云端仍归属旧名字的记录一起迁到新名字（包括这台设备还没拉到的行）。
+ * 不迁的话，下次同步把这些行拉回来，旧名字会重新冒出来，用户就从 3 个变成 4 个。
+ * 只是换个 owner（内容、id 都不变），墓碑行不用管。
+ */
+async function incRenameOwnerEverywhere(oldName, newName) {
+    if (!cloudConfigured() || offlineMode || !currentUserName) return { moved: 0 };
+    const rows = await incPullRows(0);
+    const now = Date.now();
+    const upserts = [];
+    rows.forEach(row => {
+        if (row.deleted || row.owner !== oldName) return;
+        if (row.kind !== 'acc' && row.kind !== 'txn' && row.kind !== 'plan') return;
+        let rec;
+        try { rec = incDec(row.enc); } catch (_) { return; }   // 解不开的行跳过，不阻断改名
+        rec.ownerName = newName;
+        rec.updatedAt = now;
+        upserts.push({
+            item: { id: String(row.id), kind: row.kind, owner: newName, payload: rec },
+            sig: incSig(rec), ts: Math.max(now, Number(row.ts) || 0)
+        });
+    });
+    if (upserts.length) {
+        // 用一次性状态对象：这些 id 之后还要靠一次拉取合到本机，
+        // 不能让正式状态把它们记成“本机没有 = 已删除”，否则下一轮同步会误发墓碑。
+        await incPushUpserts(upserts, { lastSeq: 0, synced: {} });
+    }
+    return { moved: upserts.length };
+}
+
 /** 转账 = 转出 + 转入两条独立记录（外加可能的手续费记录）。云端把它们当作互不相干的行，
  *  只要其中一条的删除没有送达（推送中断、旧版本删除、清理云端已删除行等），另一半就会孤零零地留下。
  *  所以收到某条转账记录的删除时，本机把同一笔转账的另一半和手续费一并删掉；
@@ -177,8 +268,34 @@ function incRemoveTransferCompanions(data, gone) {
     return n;
 }
 
+/** 用户列表的合并规则（5.1.5 起）：
+ *  以前是“整条配置谁的时间戳新谁说了算”，而新增/改名/删除用户又不动时间戳，
+ *  结果一台改了预算的旧设备一同步，就能把别的设备刚加的用户连同他的全部数据“抹掉”。
+ *  现在：
+ *   - users 取并集（云端 ∪ 本机 ∪ 有数据的桶），并集只增不减，绝不因为配置覆盖丢用户；
+ *   - 删除用户靠 removedUsers 标记生效（同名重新添加会清掉标记）；
+ *   - 有数据的桶一律保留，哪怕用户列表里没有它 —— 钱不能因为一份旧配置就看不见。 */
+/** removedUsers 的取值约定（5.1.5）：
+ *   正数 = 在该时间点被删除；负数 = 在该时间点被重新添加（删除作废）。
+ *  合并时取“更晚发生”的那一个（绝对时间更大），并保留符号，
+ *  这样“删了又加”和“加了又删”都能正确收敛到最新的一次操作。 */
+function incUserRemoved(map, u) { return Number(map && map[u]) > 0; }
+
+function incMergeRemovedUsers(a, b) {
+    const out = {};
+    [a, b].forEach(m => {
+        if (!m || typeof m !== 'object') return;
+        Object.keys(m).forEach(k => {
+            const cur = Number(out[k]) || 0;
+            const v = Number(m[k]) || 0;
+            if (!cur || Math.abs(v) > Math.abs(cur)) out[k] = v;
+        });
+    });
+    return out;
+}
+
 function incApplyConfig(data, cfg) {
-    data.users = cfg.users || data.users || [];
+    incMergeUsersFromConfig(data, cfg);
     data.categories = cfg.categories || data.categories;
     data.exchangeRates = cfg.exchangeRates || data.exchangeRates;
     data.budgets = cfg.budgets || [];
@@ -186,6 +303,25 @@ function incApplyConfig(data, cfg) {
     data.userPins = cfg.userPins || data.userPins || {};
     data.configUpdatedAt = cfg.configUpdatedAt || 0;
     (data.users || []).forEach(u => incEnsureUserSlot(data, u));
+}
+
+/** 只合并“谁存在”这一件事：云端 ∪ 本机 ∪ 有数据的桶，再减去主动删除的标记。
+ *  配置的其它内容（分类/汇率/预算/PIN）仍然按 configUpdatedAt 定输赢，
+ *  但用户列表绝不因为一份旧配置而缩水 —— 缩水就意味着这个人的钱集体消失。 */
+function incMergeUsersFromConfig(data, cfg) {
+    const removed = incMergeRemovedUsers(data.removedUsers, cfg.removedUsers);
+    data.removedUsers = removed;
+    const seen = new Set(), users = [];
+    const push = (u, force) => {
+        if (typeof u !== 'string' || !u || seen.has(u)) return;
+        if (!force && incUserRemoved(removed, u)) return;
+        seen.add(u); users.push(u);
+    };
+    (Array.isArray(data.users) ? data.users : []).forEach(u => push(u));
+    (Array.isArray(cfg.users) ? cfg.users : []).forEach(u => push(u));
+    incBucketNamesWithData(data).forEach(u => push(u, true));   // 还有数据的桶不受删除标记影响
+    data.users = users;
+    users.forEach(u => incEnsureUserSlot(data, u));
 }
 
 /* ── 拉取 ── */
@@ -205,6 +341,33 @@ async function incPullByIds(ids) {
     const out = [];
     for (let i = 0; i < ids.length; i += 200) out.push(...(await sheetCall({}, { action: 'pullIds', ids: ids.slice(i, i + 200) })).rows);
     return out;
+}
+
+/**
+ * 改密码专用：让服务端只重写密文列（ts / deleted / seq 不动）。
+ * 已删除的墓碑行走不了 push（“已删除不可复活”），但它们的密文也要换成新密码，
+ * 否则改密后「恢复云端已删除的记录」就解不开这些行了。
+ * 旧版 Code.gs 没有 rekey 动作：这里返回 unsupported，改密流程继续（墓碑保持旧密码）。
+ */
+async function incRekeyRows(rows) {
+    let updated = 0, unsupported = false, tooLarge = 0;
+    for (let i = 0; i < rows.length; i += 200) {
+        const part = rows.slice(i, i + 200);
+        try {
+            const r = await sheetCall({}, { action: 'rekey', rows: part });
+            updated += (r && r.updated) || 0;
+            tooLarge += (r && r.tooLarge) || 0;
+        } catch (_) {
+            unsupported = true;
+            break;
+        }
+    }
+    return { updated, unsupported, tooLarge };
+}
+
+/** 不改任何状态地试解一条密文（改密码后的校验用） */
+function incCanDecrypt(enc, pw) {
+    try { incDec(enc, pw); return true; } catch (_) { return false; }
 }
 
 /** 先整体解密，任何一条失败就整体放弃，避免“一半成功”造成数据缺失 */
@@ -248,11 +411,19 @@ function incApplyRows(data, decrypted, state) {
             const lc = local.get('config').payload;
             const localSig = incSig(lc);
             if (localSig === remoteSig) { state.synced[id] = remoteSig; return; }
+            // 用户列表先取并集：即使这份配置因为时间戳更旧而不被采用，
+            // “谁存在”也不该被它抹掉（这正是以前整块数据消失的原因）。
+            const usersBefore = JSON.stringify(data.users || []);
+            incMergeUsersFromConfig(data, rec);
+            const usersGrew = JSON.stringify(data.users || []) !== usersBefore;
             const dirty = state.synced[id] !== localSig;
             if (!dirty || (rec.configUpdatedAt || 0) > (lc.configUpdatedAt || 0)) {
                 incApplyConfig(data, rec);
                 state.synced[id] = remoteSig;
                 res.configChanged = true; res.changed++;
+            } else if (usersGrew) {
+                // 配置内容保留本机版本，但用户列表补全了，界面要跟着刷新
+                res.changed++;
             }
             return;
         }
@@ -272,7 +443,13 @@ function incApplyRows(data, decrypted, state) {
         if (!listName) return;
         const ud = incEnsureUserSlot(data, row.owner);
         const arr = ud[listName] || (ud[listName] = []);
-        const idx = arr.findIndex(r => String(r.id) === id);
+        let idx = arr.findIndex(r => String(r.id) === id);
+        if (idx < 0) {
+            // 这条记录是换了归属的（转账改了转入账户、用户改名）：云端只有一行一个 owner，
+            // 本机也必须只有一份，所以从旧桶里“搬”过来，而不是在新桶里再复制一份。
+            const moved = incDetachById(data, id, row.owner);
+            if (moved) { arr.push(moved); idx = arr.length - 1; res.changed++; }
+        }
         if (idx < 0) {
             arr.push(rec);
             state.synced[id] = remoteSig;
@@ -291,6 +468,8 @@ function incApplyRows(data, decrypted, state) {
         }
         // 否则：本机改动更新，保留本机版本，稍后会被推送
     });
+    // 整轮合并之后：改名留下的旧名字空桶在这里清掉（记录已经全部挪到新名字下）
+    if (incPruneRemovedUsers(data)) res.changed++;
     return res;
 }
 
@@ -309,14 +488,16 @@ function incDiffLocal(data, state, force) {
     return { upserts, tombstones };
 }
 
-async function incPushUpserts(upserts, state) {
+/** pw 可选：改密码时用新密码加密，其它调用沿用全局 userPassword。
+ *  upserts 里每项可带 ts，改密码重写时用它保证服务端接受（服务端只拒绝严格更旧的 ts）。 */
+async function incPushUpserts(upserts, state, pw) {
     let pushed = 0;
     const rejected = [];
     for (let i = 0; i < upserts.length; i += INC_PUSH_BATCH) {
         const batch = upserts.slice(i, i + INC_PUSH_BATCH);
-        const body = batch.map(({ item }) => ({
+        const body = batch.map(({ item, ts }) => ({
             id: item.id, kind: item.kind, owner: item.owner,
-            enc: incEnc(item.payload), ts: incTsOf(item), deleted: false
+            enc: incEnc(item.payload, pw), ts: (typeof ts === 'number' && ts > 0) ? ts : incTsOf(item), deleted: false
         }));
         const r = await sheetCall({}, { action: 'push', rows: body });
         if (r.tooLarge && r.tooLarge.length) throw new Error(`有 ${r.tooLarge.length} 条记录内容过大（超过单元格上限），无法同步`);
@@ -345,11 +526,34 @@ async function incPushTombstones(ids, state) {
 async function incSyncCore(options = {}) {
     const state = options.freshState ? { lastSeq: 0, synced: {} } : incLoadState();
     const data = inMemoryLoadedData;
-    const summary = { newItems: 0, changed: 0, configChanged: false, pushed: 0, deleted: 0, aborted: '' };
+    const summary = { newItems: 0, changed: 0, configChanged: false, pushed: 0, deleted: 0, rejected: 0, aborted: '' };
 
     // 1) 拉取
     // 拉取与写入都在 GAS 的同一把锁里，不会乱序，所以直接从上次的序号往后拉即可
     const rows = await incPullRows(state.lastSeq);
+
+    // 1.5) 熔断（拉取侧）：云端一次发来大量“删除标记”时先确认。
+    // 另一台设备如果丢了自己的数据桶，会把“自己没见过的记录”当成删除推上云端；
+    // 本机原样拉下来，会把自己的完整数据也跟着删掉。删除前一定先问。
+    const delRows = rows.filter(r => r.deleted).length;
+    const liveRows = rows.length - delRows;
+    if (delRows > 50 && delRows > liveRows) {
+        let ok = false;
+        if (options.manual) {
+            ok = await uiConfirm(
+                `云端这次有 ${delRows} 条“已删除”记录（正常记录只有 ${liveRows} 条）。\n\n` +
+                '如果这不是你刚做的批量删除，请点“取消”：本机不会删除任何数据，也不会把删除推回云端。\n' +
+                '确认是本人操作，才点“继续同步”。',
+                { title: '云端发来大量删除', okText: '继续同步', cancelText: '取消（安全）', danger: true }
+            );
+        }
+        if (!ok) {
+            summary.aborted = `云端有 ${delRows} 条删除标记、正常记录只有 ${liveRows} 条，已中止（本机数据未改动）`;
+            incSaveState(state);
+            return summary;
+        }
+    }
+
     const pullPw = options.pullPassword || userPassword;
     const applied = incApplyRows(data, incDecryptRows(rows, pullPw), state);
     summary.newItems += applied.newItems;
@@ -379,6 +583,7 @@ async function incSyncCore(options = {}) {
     // 4) 推送
     const up = await incPushUpserts(diff.upserts, state);
     summary.pushed = up.pushed;
+    summary.rejected = up.rejected.length;
     if (diff.tombstones.length) {
         await incPushTombstones(diff.tombstones, state);
         summary.deleted = diff.tombstones.length;
@@ -436,14 +641,17 @@ function incRefreshAfterMerge(summary) {
     if (summary.configChanged) renderCategorySettings();
 }
 
-/** 手动 / 自动同步入口（对应原 syncToDrive） */
+/** 手动 / 自动同步入口（对应原 syncToDrive）
+ *  5.1.8：自动同步不再弹提示——成功只让底部细线变绿，失败先由细线提示，
+ *  连续失败超过 BAR_ERROR_DELAY_MS 才弹文字状态条（见 js/88-toast-syncbar.js）。 */
 async function incSync(manual = false, forcePush = false) {
     if (!currentUser) return;
     if (offlineMode) { if (manual) showToast('离线模式下不会同步，请切换到在线模式', 'warning'); return; }
     if (!userPassword) { if (manual) uiAlert('需要加密密码才能同步，请重新登录。'); return; }
-    if (driveIsSyncing) return;
+    if (driveIsSyncing) { _autoSyncAgain = true; return; }
+    const seqAtStart = _editSeq;
     driveIsSyncing = true;
-    showToast('同步中…', 'syncing', 0);
+    if (typeof syncLineRender === 'function') syncLineRender();
     saveUserData();
     try {
         const s = await incSyncCore({ manual, force: forcePush });
@@ -452,12 +660,24 @@ async function incSync(manual = false, forcePush = false) {
         incPersistLocal(s.state, s.changed > 0 || s.pushed > 0 || s.deleted > 0);
         clearUnsavedFlag();
         incEnsureBackup();
-        if (s.newItems > 0) showToast(`已同步 ${s.newItems} 条新数据`, 'success');
-        else showToast('已同步', 'success');
+        _barError = null;
+        _barBusy = null;
+        if (typeof syncLineOk === 'function') syncLineOk();
+        if (s.rejected > 0) {
+            showToast(`有 ${s.rejected} 条改动被云端拒绝（多半是本机时间落后于其他设备）。请校准手机/电脑时间后再同步一次。`, 'warning', 0);
+        }
     } catch (err) {
-        showToast('同步失败：' + err.message, 'error');
+        showToast('同步失败：' + err.message, 'error', 0);
     } finally {
         driveIsSyncing = false;
+        // 同步期间又改过数据：不能因为这次同步结束就认为“已全部上传”，再排一次自动同步
+        if (_editSeq !== seqAtStart) {
+            hasUnsavedChanges = true;
+            if (!_unsavedSince) _unsavedSince = Date.now();
+            scheduleAutoSync();
+        }
+        if (typeof syncLineRender === 'function') syncLineRender();
+        if (typeof syncBarRender === 'function') syncBarRender();
     }
 }
 
@@ -478,11 +698,14 @@ async function incBackgroundSync() {
         incEnsureBackup();
         const isFormOpen = $('add-transaction-section') && $('add-transaction-section').classList.contains('show');
         if (isFormOpen) {
-            if (s.changed > 0) { window._pendingUIRefresh = true; showToast(s.newItems > 0 ? `后台已同步 ${s.newItems} 条新数据，关闭表单后自动刷新` : '后台已同步', 'info', 3000); }
+            if (s.changed > 0) { window._pendingUIRefresh = true; showToast(s.newItems > 0 ? `后台已合并 ${s.newItems} 条云端新数据，关闭表单后自动刷新` : '后台已合并云端改动', 'info', 3000); }
         } else {
             incRefreshAfterMerge(s);
-            if (s.newItems > 0) showToast(`已同步 ${s.newItems} 条新数据`, 'success', 3000);
-            else if (verboseToast) showToast('已同步', 'success', 2000);
+            if (s.newItems > 0) showToast(`云端有 ${s.newItems} 条新数据已合并`, 'success', 3000);
+            else if (verboseToast) showToast('云端数据已是最新', 'info', 2000);
+        }
+        if (s.rejected > 0) {
+            showToast(`有 ${s.rejected} 条改动被云端拒绝（多半是本机时间落后于其他设备），请校准时间后再同步。`, 'warning', 0);
         }
     } catch (e) {
         console.warn('[sb] 后台同步失败', e);
@@ -514,6 +737,9 @@ function incAssemble(rows, pw) {
     });
     if (!data.categories) data.categories = typeof DEFAULT_CATEGORIES !== 'undefined' ? DEFAULT_CATEGORIES : { expense: [], income: [] };
     if (!data.exchangeRates) data.exchangeRates = typeof DEFAULT_RATES !== 'undefined' ? { ...DEFAULT_RATES } : {};
+    // 配置行可能是别的设备推上来的旧版本（用户列表少几个人）。数据行都拉下来了，用户列表里却没有，
+    // 登录后就“什么都看不到”。这里按「有数据的桶一定算用户」再补一次。
+    incMergeUsersFromConfig(data, { users: [] });
     return { data, state, hasConfig };
 }
 
@@ -547,10 +773,13 @@ async function incInitialLoad(password) {
 async function incListBackups() {
     return (await sheetCall({ action: 'listBackups' })).map(x => ({ name: x.name, createdAt: x.createdAt, size: x.size, kind: x.kind }));
 }
-async function incReadBackup(name) {
+async function incReadBackupRows(name) {
     const rows = await sheetCall({ action: 'readBackup', file: name });
     if (!Array.isArray(rows)) throw new Error('备份不存在或格式异常');
-    return incAssemble(rows, userPassword).data;
+    return rows;
+}
+async function incReadBackup(name) {
+    return incAssemble(await incReadBackupRows(name), userPassword).data;
 }
 
 /* INC-END */
