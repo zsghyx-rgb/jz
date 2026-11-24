@@ -12,15 +12,15 @@
     --tmc-pill-h: 32px;
 }
 
-/* 标题栏：第一行 关闭 | 标题（新增支出 · 用户名，与经典布局相同）| 拆分；第二行 支出·收入·转账 页签（编辑模式没有页签） */
+/* 标题栏：第一行 标题靠左（新增支出 · 用户名，与经典布局相同）| 关闭靠右；第二行 支出·收入·转账 页签（编辑模式没有页签） */
 html[data-trans-layout="compact"] #editTransactionModal .modal-header {
     display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     padding: 8px 12px 6px !important; border-bottom: 0;
 }
 html[data-trans-layout="compact"] #editTransactionModal #trans-tab-bar { order: 3; flex: 0 0 100%; min-width: 0; padding: 0 !important; }
-html[data-trans-layout="compact"] #editTransactionModal .modal-title { order: 1; flex: 1; min-width: 0; text-align: center; font-size: 0.95rem !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-trans-layout="compact"] #editTransactionModal .modal-title { order: 0; flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html[data-trans-layout="compact"] #editTransactionModal .modal-header .btn-close {
-    order: 0; flex: none; margin: 0 !important; width: 36px; height: 36px; padding: 0;
+    order: 1; flex: none; margin: 0 !important; width: 36px; height: 36px; padding: 0;
     border-radius: 50%; background-color: var(--bs-tertiary-bg);
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23212529'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e");
     background-size: 12px; background-position: center; background-repeat: no-repeat;
@@ -45,15 +45,14 @@ html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form .
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form .tm-row-card,
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form #single-meta-section { display: none !important; }
 
-/* 分类：弹性区，占满胶囊行上方的全部空间；5 列；不再有“所有分类”标题行 */
+/* 分类：弹性区，占满胶囊行上方的全部空间；保留“所有分类”标题行和拆分按钮（与经典一致） */
 html[data-trans-layout="compact"] #editTransactionModal #single-item-row { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section {
     flex: 1; min-height: 0; display: flex; flex-direction: column;
     background: transparent; border-radius: 0; margin: 0; padding: 6px 8px 0;
     border-top: 1px solid var(--bs-border-color);
 }
-html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section .tm-card-header,
-html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section #split-toggle-btn { display: none !important; }   /* 标题行带 Bootstrap d-flex（!important），普通 display:none 压不住；拆分用标题栏右上角那个 */
+html[data-trans-layout="compact"] #editTransactionModal .tmc-split-btn { display: none !important; }   /* 与经典一致：拆分按钮放在“所有分类”标题行右侧，标题栏里的剪刀按钮不再显示 */
 html[data-trans-layout="compact"] #editTransactionModal { --tmc-cat-cols: 4; --tmc-cat-icon: 56px; }   /* 每行 4 个；想要更松 / 更紧改列数，想要图标更大 / 更小改 --tmc-cat-icon */
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section .cat-grid {
     flex: 1; min-height: 0; max-height: none; grid-template-columns: repeat(var(--tmc-cat-cols), 1fr);
