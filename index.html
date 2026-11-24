@@ -40,7 +40,7 @@
         }
     })();
     </script>
-    <title id="app-title">记一笔 v5.2.0</title>
+    <title id="app-title">记一笔 v5.2.1</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -60,6 +60,7 @@
     <link rel="stylesheet" href="css/20-feedback-sync.css">
     <link rel="stylesheet" href="css/30-transactions.css">
     <link rel="stylesheet" href="css/40-transaction-form.css">
+    <link rel="stylesheet" href="css/45-trans-compact.css">
     <link rel="stylesheet" href="css/50-insights-stats.css">
     <link rel="stylesheet" href="css/60-widgets.css">
     <!-- 三套主题（始终全部加载，由 html[data-app-theme] 决定哪一套生效） -->
@@ -209,7 +210,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.0</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.1</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -744,6 +745,20 @@
 
                 <div class="appearance-block">
                     <div class="appearance-block-head">
+                        <span class="appearance-block-title">记账窗口样式</span>
+                        <span class="appearance-block-hint">新增/编辑 支出·收入</span>
+                    </div>
+                    <div class="appearance-seg" id="trans-layout-seg" role="group" aria-label="记账窗口样式">
+                        <button type="button" data-layout="classic" onclick="setTransLayout('classic')">经典（默认）</button>
+                        <button type="button" data-layout="compact" onclick="setTransLayout('compact')">紧凑（分类优先）</button>
+                    </div>
+                    <div class="sync-pos-row">
+                        <span class="sync-pos-tip">紧凑样式：分类一屏显示更多；账户、日期、标签、图片做成胶囊，点一下再填，填过会显示内容；备注和金额在同一行；「再记」「保存」放进键盘。转账页暂不变。只保存在本机。</span>
+                    </div>
+                </div>
+
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
                         <span class="appearance-block-title">同步提示位置</span>
                         <span class="appearance-block-hint" id="sync-bar-pos-state">当前：默认位置</span>
                     </div>
@@ -1118,7 +1133,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.2.0</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.2.1</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -1383,6 +1398,9 @@
             <div class="modal-header py-2">
                 <h5 class="modal-title fs-6" id="editTransactionModalTitle">新增交易</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <!-- tmc:begin 5.2.1 紧凑布局的“拆分”按钮（经典布局下隐藏） -->
+                <button type="button" class="tmc-split-btn" id="tmc-split-btn" onclick="handleSplitBtn()" aria-label="拆分账单" style="display:none;"><i class="bi bi-scissors"></i></button>
+                <!-- tmc:end -->
             </div>
             <!-- Tab 栏 -->
             <div class="px-3 pt-2 pb-1" id="trans-tab-bar">
@@ -1519,6 +1537,26 @@
                         </div>
                     </div>
 
+                    <!-- tmc:begin 5.2.1 紧凑布局容器：经典布局下整块隐藏；紧凑布局下 js/61-trans-compact.js 把账户/日期/快捷日期/标签/备注/金额/附件等【现有节点】搬进来 -->
+                    <div class="tmc-bar" id="tmc-bar">
+                        <!-- 账户、日期（现有节点）插在这里 -->
+                        <button type="button" class="tmc-pill" id="tmc-tag-pill"><i class="bi bi-tag"></i><span id="tmc-tag-text">标签</span></button>
+                        <div class="tmc-pill" id="tmc-att-pill" role="button" tabindex="0" style="display:none;"><i class="bi bi-image"></i><span id="tmc-att-text">图片</span></div>
+                        <div class="tmc-pop" id="tmc-pop-date"></div>
+                        <div class="tmc-pop" id="tmc-pop-att"></div>
+                    </div>
+                    <div class="tmc-tagrow" id="tmc-tagrow">
+                        <button type="button" class="tmc-tag-ok" id="tmc-tag-ok" aria-label="完成"><i class="bi bi-check-lg"></i></button>
+                    </div>
+                    <div class="tmc-memo-wrap" id="tmc-memo-wrap">
+                        <div id="tmc-hint"></div>
+                        <div class="tmc-memo" id="tmc-memo">
+                            <div class="tmc-memo-left" id="tmc-memo-left"></div>
+                            <div class="tmc-memo-right" id="tmc-memo-right"></div>
+                        </div>
+                    </div>
+                    <!-- tmc:end -->
+
                     <!-- 数字键盘（5.1.1）：支出/收入的金额用它输入，支持 + − 算式；点备注/标签时自动收起 -->
                     <div class="amount-keypad" id="amount-keypad" role="group" aria-label="数字键盘">
                         <button type="button" data-k="7">7</button>
@@ -1537,6 +1575,9 @@
                         <button type="button" data-k="0">0</button>
                         <button type="button" data-k=".">.</button>
                         <button type="button" data-k="=" class="kp-eq" id="kp-eq">=</button>
+                        <!-- 5.2.1 紧凑布局：键盘左下角（新增=再记 / 编辑=删除）和右下角（保存）；经典布局下隐藏 -->
+                        <button type="button" data-k="left" class="kp-c kp-left" id="kp-left">再记</button>
+                        <button type="button" data-k="save" class="kp-c kp-save" id="kp-save">保存</button>
                     </div>
 
                     <!-- 底部保存栏（金额已移至顶部卡片） -->
@@ -1709,6 +1750,7 @@
 <script src="js/57-transfer-ui.js"></script>
 <script src="js/58-split-items.js"></script>
 <script src="js/59-trans-form-ui.js"></script>
+<script src="js/61-trans-compact.js"></script>
 <script src="js/60-budget.js"></script>
 <script src="js/62-category-icons.js"></script>
 <script src="js/64-transaction-submit.js"></script>
