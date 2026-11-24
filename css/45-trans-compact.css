@@ -12,14 +12,13 @@
     --tmc-pill-h: 32px;
 }
 
-/* 标题栏：关闭 | 支出·收入·转账 | 拆分（编辑模式没有页签时显示标题） */
+/* 标题栏：第一行 关闭 | 标题（新增支出 · 用户名，与经典布局相同）| 拆分；第二行 支出·收入·转账 页签（编辑模式没有页签） */
 html[data-trans-layout="compact"] #editTransactionModal .modal-header {
-    display: flex; align-items: center; gap: 8px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     padding: 8px 12px 6px !important; border-bottom: 0;
 }
-html[data-trans-layout="compact"] #editTransactionModal #trans-tab-bar { order: 1; flex: 1; min-width: 0; padding: 0 !important; }
-html[data-trans-layout="compact"] #editTransactionModal .modal-title { order: 1; flex: 1; min-width: 0; text-align: center; font-size: 0.95rem !important; }
-html[data-trans-layout="compact"] #editTransactionModal #trans-tab-bar:not([style*="display: none"]) ~ .modal-title { display: none; }
+html[data-trans-layout="compact"] #editTransactionModal #trans-tab-bar { order: 3; flex: 0 0 100%; min-width: 0; padding: 0 !important; }
+html[data-trans-layout="compact"] #editTransactionModal .modal-title { order: 1; flex: 1; min-width: 0; text-align: center; font-size: 0.95rem !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html[data-trans-layout="compact"] #editTransactionModal .modal-header .btn-close {
     order: 0; flex: none; margin: 0 !important; width: 36px; height: 36px; padding: 0;
     border-radius: 50%; background-color: var(--bs-tertiary-bg);
