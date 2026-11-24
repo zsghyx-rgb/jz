@@ -43,6 +43,7 @@ function tmcMount() {
     _tmcMove($('wrap-edit-trans-account'), $('tmc-bar'), tagPill);                        // 账户（现有下拉）→ 胶囊
     _tmcMove(modal.querySelector('.tm-row-card .tm-date-trigger'), $('tmc-bar'), tagPill);// 日期触发器 → 胶囊
     _tmcMove($('trans-date-chips'), $('tmc-pop-date'));                                   // 今天/昨天/前天/选日期 → 日期面板
+    _tmcMove($('edit-trans-date'), $('trans-date-chips'));                                // 真正的日期输入框 → 盖在“选日期”按钮上（css/45），点它就是原生点击
     _tmcMove($('attachment-section'), $('tmc-pop-att'));                                  // 附件区 → 图片面板
     _tmcMove($('tags-collapse-wrap'), $('tmc-tagrow'), $('tmc-tag-ok'));                  // 标签输入 → 标签输入行
     _tmcMove(modal.querySelector('#single-meta-section .desc-suggest-wrap'), $('tmc-memo-left'));  // 备注（含联想）
@@ -240,7 +241,16 @@ function tmcInitEvents() {
         if (dt && !e.target.closest('#tmc-pop-date')) { e.stopPropagation(); e.preventDefault(); tmcTogglePop('date'); }
     }, true);
     bar.addEventListener('click', e => { if (tmcOn() && e.target.closest('.tm-acc-trigger')) tmcClosePops(); });   // 点账户：收起面板
-    $('tmc-pop-date').addEventListener('click', e => { if (e.target.closest('button[data-off]')) setTimeout(tmcClosePops, 0); });
+    // 点 今天 / 昨天 / 前天：选完收起面板。“选日期”由透明的日期输入框接管（原生点击），不在这里收起——
+    // 面板一隐藏，iOS 的日期滚轮可能跟着消失；等输入框失焦（选完）再收起，收不起来点别处也会收起
+    $('tmc-pop-date').addEventListener('click', e => {
+        const b = e.target.closest('button[data-off]');
+        if (b && b.dataset.off !== 'pick') setTimeout(tmcClosePops, 0);
+    });
+    const dateInp = $('edit-trans-date');
+    if (dateInp) dateInp.addEventListener('focusout', () => setTimeout(() => {
+        if (tmcOn() && document.activeElement !== dateInp) tmcClosePops();
+    }, 200));
 
     // 标签胶囊 → 展开输入行并聚焦；输入行的 ✓ / 回车 / 失焦 → 收起，胶囊显示内容
     $('tmc-tag-pill').addEventListener('click', () => { if (!tmcOn()) return; tmcClosePops(); tmcOpenTagRow(); });
