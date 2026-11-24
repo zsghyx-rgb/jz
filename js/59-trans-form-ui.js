@@ -101,6 +101,9 @@ function amountPadSync() {
     const tg = $('amount-kb-toggle');
     if (tg) { tg.classList.toggle('active', !padOn); tg.title = padOn ? '改用系统键盘' : '改用数字键盘'; }
     $('trans-amount-card')?.classList.toggle('pad-active', padOn && formVisible && !_inSplitMode);
+    // 5.2.1 紧凑布局：数字键盘显示时由键盘里的「保存」代替底部保存栏（css/45）；同步胶囊文字 / 拆分按钮 / 左下角按钮
+    form.classList.toggle('kp-on', kp.style.display !== 'none');
+    if (typeof tmcSync === 'function') tmcSync();
 }
 
 function amountPadShow() {            // 点金额区：显示数字键盘（系统键盘模式下则聚焦输入）
@@ -275,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const b = e.target.closest('button[data-k]');
             if (!b) return;
             e.preventDefault();
+            if (typeof tmcKeyAction === 'function' && tmcKeyAction(b.dataset.k)) return;   // 5.2.1 紧凑键盘的「再记 / 保存」
             amountPadPress(b.dataset.k);
         });
         kp.addEventListener('click', e => e.preventDefault());

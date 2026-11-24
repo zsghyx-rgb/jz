@@ -98,6 +98,7 @@ function resetAttachmentUI() {
         container.style.setProperty('display', 'none', 'important');
     }
     if (idField) idField.value = '';
+    if (typeof tmcSync === 'function') tmcSync();   // 5.2.1 紧凑布局：图片胶囊
 }
 
 async function compressImage(file, maxKB = 500) {
@@ -244,6 +245,7 @@ function renderAttachmentThumbs(ids) {
 
     if (!ids || ids.length === 0) {
         container.style.setProperty('display', 'none', 'important');
+        if (typeof tmcSync === 'function') tmcSync();   // 5.2.1 紧凑布局：图片胶囊
         return;
     }
 
@@ -275,6 +277,7 @@ function renderAttachmentThumbs(ids) {
         }
         container.appendChild(wrapper);
     });
+    if (typeof tmcSync === 'function') tmcSync();   // 5.2.1 紧凑布局：图片胶囊显示“N 张”
 }
 
 // 5. 删除特定位置的图片（直接删 + 可撤销，不再弹原生确认框）
