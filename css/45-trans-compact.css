@@ -55,14 +55,15 @@ html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section {
 }
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section .tm-card-header,
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section #split-toggle-btn { display: none !important; }   /* 标题行带 Bootstrap d-flex（!important），普通 display:none 压不住；拆分用标题栏右上角那个 */
-html[data-trans-layout="compact"] #editTransactionModal { --tmc-cat-cols: 6; }   /* 想要更松 / 更紧，改这个列数即可（5 = 参考图，6 = 更紧凑） */
+html[data-trans-layout="compact"] #editTransactionModal { --tmc-cat-cols: 4; --tmc-cat-icon: 56px; }   /* 每行 4 个；想要更松 / 更紧改列数，想要图标更大 / 更小改 --tmc-cat-icon */
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section .cat-grid {
     flex: 1; min-height: 0; max-height: none; grid-template-columns: repeat(var(--tmc-cat-cols), 1fr);
     align-content: start; grid-auto-rows: max-content;   /* 不让网格把行拉伸去填满高度（之前每行被撑到约 95pt） */
-    gap: 6px 2px; padding: 4px 0 8px;
+    gap: 10px 4px; padding: 6px 0 10px;
 }
-html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item { padding: 1px; gap: 3px; }
-html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item .cat-name { max-width: 58px; font-size: 0.66rem; }
+html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item { padding: 1px; gap: 4px; }
+html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item .cat-icon-circle { width: var(--tmc-cat-icon); height: var(--tmc-cat-icon); font-size: calc(var(--tmc-cat-icon) * 0.46); }
+html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item .cat-name { max-width: 80px; font-size: 0.74rem; }
 
 /* 胶囊行：账户 · 日期 · 标签 · 图片 */
 html[data-trans-layout="compact"] #editTransactionModal .tmc-bar {
