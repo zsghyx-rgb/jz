@@ -53,7 +53,7 @@ html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section {
     border-top: 1px solid var(--bs-border-color);
 }
 html[data-trans-layout="compact"] #editTransactionModal .tmc-split-btn { display: none !important; }   /* 与经典一致：拆分按钮放在“所有分类”标题行右侧，标题栏里的剪刀按钮不再显示 */
-html[data-trans-layout="compact"] #editTransactionModal { --tmc-cat-cols: 4; --tmc-cat-icon: 56px; }   /* 每行 4 个；想要更松 / 更紧改列数，想要图标更大 / 更小改 --tmc-cat-icon */
+html[data-trans-layout="compact"] #editTransactionModal { --tmc-cat-cols: 4; --tmc-cat-icon: 56px; --tmc-key-h: 56px; }   /* 每行 4 个；想要更松 / 更紧改列数，想要图标更大 / 更小改 --tmc-cat-icon；键盘按键高度改 --tmc-key-h */
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section .cat-grid {
     flex: 1; min-height: 0; max-height: none; grid-template-columns: repeat(var(--tmc-cat-cols), 1fr);
     align-content: start; grid-auto-rows: max-content;   /* 不让网格把行拉伸去填满高度（之前每行被撑到约 95pt） */
@@ -151,7 +151,7 @@ html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right .amount-
 html[data-trans-layout="compact"] #editTransactionModal .amount-keypad {
     padding: 2px 10px calc(8px + env(safe-area-inset-bottom, 0px)); border-top: 0;
 }
-html[data-trans-layout="compact"] #editTransactionModal .amount-keypad button { height: 44px; }
+html[data-trans-layout="compact"] #editTransactionModal .amount-keypad button { height: var(--tmc-key-h, 56px); }
 html[data-trans-layout="compact"] #editTransactionModal .amount-keypad [data-k="clear"],
 html[data-trans-layout="compact"] #editTransactionModal .amount-keypad [data-k="="] { display: none; }
 html[data-trans-layout="compact"] #editTransactionModal .amount-keypad .kp-c { display: flex; align-items: center; justify-content: center; }
