@@ -40,7 +40,7 @@
         }
     })();
     </script>
-    <title id="app-title">记一笔 v5.2.2</title>
+    <title id="app-title">记一笔 v5.2.3</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -210,7 +210,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.2</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.3</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -752,6 +752,19 @@
                         <button type="button" data-layout="classic" onclick="setTransLayout('classic')">经典（默认）</button>
                         <button type="button" data-layout="compact" onclick="setTransLayout('compact')">紧凑（分类优先）</button>
                     </div>
+                    <div class="tmc-size-box" id="tmc-size-box">
+                        <div class="tmc-size-title">紧凑样式的大小（拖动即时保存）</div>
+                        <label class="tmc-size-row"><span class="tmc-size-name">分类每行个数</span>
+                            <input type="range" id="tmc-size-cols" min="3" max="6" step="1" value="4" oninput="setTmcSize('cols', this.value)">
+                            <span class="tmc-size-val" id="tmc-size-cols-val">4 个</span></label>
+                        <label class="tmc-size-row"><span class="tmc-size-name">分类图标大小</span>
+                            <input type="range" id="tmc-size-icon" min="40" max="72" step="2" value="56" oninput="setTmcSize('icon', this.value)">
+                            <span class="tmc-size-val" id="tmc-size-icon-val">56 px</span></label>
+                        <label class="tmc-size-row"><span class="tmc-size-name">键盘按键高度</span>
+                            <input type="range" id="tmc-size-key" min="40" max="72" step="2" value="56" oninput="setTmcSize('key', this.value)">
+                            <span class="tmc-size-val" id="tmc-size-key-val">56 px</span></label>
+                        <button type="button" class="tmc-size-reset" onclick="resetTmcSizes()">恢复默认</button>
+                    </div>
                     <div class="sync-pos-row">
                         <span class="sync-pos-tip">紧凑样式：分类一屏显示更多；账户、日期、标签、图片做成胶囊，点一下再填，填过会显示内容；备注和金额在同一行；「再记」「保存」放进键盘。转账页暂不变。只保存在本机。</span>
                     </div>
@@ -1133,7 +1146,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.2.2</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.2.3</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
