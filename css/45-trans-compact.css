@@ -146,7 +146,8 @@ html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right .tm-amou
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right .amount-kb-toggle { padding: 2px 4px; font-size: 1rem; }
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right .amount-expr-hint { padding: 0; font-size: 0.7rem; line-height: 1.1; }
 
-/* 键盘按键高度：用设置里的滑块值（键盘排列和「再记 / 保存」在 css/40，两种布局共用） */
+/* 键盘：按键高度用设置里的滑块值，左右留 10px（键盘排列和「再记 / 保存」在 css/40，两种布局共用） */
+html[data-trans-layout="compact"] #editTransactionModal .amount-keypad { padding-left: 10px; padding-right: 10px; }
 html[data-trans-layout="compact"] #editTransactionModal .amount-keypad button { height: var(--tmc-key-h, 56px); }
 
 /* 只读查看：胶囊不可点（附件胶囊除外，能打开预览） */
