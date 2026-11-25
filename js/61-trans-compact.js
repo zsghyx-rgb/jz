@@ -1,5 +1,5 @@
 // @file js/61-trans-compact.js
-// 5.2.1：新增/编辑「支出·收入」的紧凑布局（可选；设置 › 外观与主题 › 记账窗口样式；默认经典；只保存在本机）。
+// 新增/编辑「支出·收入」的紧凑布局（可选；设置 › 外观与主题 › 记账窗口样式；默认经典；只保存在本机）。
 //
 // 做法：不复制任何业务逻辑。紧凑布局只是把【现有的】账户下拉、日期触发器、快捷日期、标签输入、备注输入、金额卡片、
 // 附件区、页签栏这些节点用 appendChild 搬进 index.html 里预先放好的新容器（#tmc-bar / #tmc-tagrow / #tmc-memo-wrap …），
@@ -150,9 +150,12 @@ function renderTransLayoutSettings() {
         el.classList.toggle('selected', on);
         el.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+    // 大小滑块只对紧凑样式有用：选经典时不显示
+    const box = $('tmc-size-box');
+    if (box) box.style.display = cur === 'compact' ? '' : 'none';
 }
 
-/* ═══════════ 三、状态同步（胶囊文字、拆分按钮、键盘左下角按钮） ═══════════
+/* ═══════════ 三、状态同步（胶囊文字、拆分按钮） ═══════════
  * 由 amountPadSync / renderAttachmentThumbs / resetAttachmentUI / exitSplitMode 调用；经典布局下立刻返回。 */
 function _tmcAttachmentCount() {
     const v = ($('edit-trans-attachment-id') && $('edit-trans-attachment-id').value) || '';
@@ -172,14 +175,6 @@ function tmcSync() {
     const sb = $('tmc-split-btn'), orig = $('split-toggle-btn');
     const canSplit = formVisible && !viewOnly && mode !== 'view' && !_inSplitMode && orig && orig.style.display !== 'none';
     if (sb) sb.style.display = canSplit ? '' : 'none';
-
-    // 键盘左下角：新增 → 再记；编辑 → 删除
-    const left = $('kp-left');
-    if (left) {
-        const del = mode === 'edit';
-        left.textContent = del ? '删除' : '再记';
-        left.classList.toggle('is-del', del);
-    }
 
     // 标签胶囊：有内容就显示内容
     const tags = (($('edit-trans-tags') && $('edit-trans-tags').value) || '').trim();
@@ -234,26 +229,6 @@ function tmcCloseTagRow() {
     const row = $('tmc-tagrow');
     if (row) row.classList.remove('open');
     tmcSync();
-}
-
-/** 键盘上的「再记 / 保存」。返回 true 表示已处理（59-trans-form-ui.js 的键盘事件据此不再当成数字键处理） */
-function tmcKeyAction(k) {
-    if (k !== 'left' && k !== 'save') return false;
-    const submitBtn = $('edit-trans-submit-btn');
-    if (submitBtn && submitBtn.disabled) {                       // 附件上传中：和原来的保存按钮一样不允许提交
-        if (typeof showToast === 'function') showToast('图片上传中，请稍候', 'info', 1800);
-        return true;
-    }
-    if (k === 'save') {
-        commitTransAmount();
-        _transKeepOpen = false;
-        const form = $('edit-transaction-form');
-        if (form.requestSubmit) form.requestSubmit(); else if (submitBtn) submitBtn.click();
-        return true;
-    }
-    const mode = $('edit-trans-mode') ? $('edit-trans-mode').value : 'add';
-    if (mode === 'edit') deleteCurrentTransaction(); else submitTransAndContinue();
-    return true;
 }
 
 /* ═══════════ 五、系统键盘弹出时：弹窗缩到键盘上方 ═══════════
@@ -340,18 +315,6 @@ function tmcInitEvents() {
         _padTempHidden = false;
         amountPadSync();
     }, 80));
-
-    // 长按退格 = 清空金额（紧凑键盘没有 C 键）
-    const kp = $('amount-keypad');
-    if (kp) {
-        let timer = null;
-        kp.addEventListener('pointerdown', e => {
-            if (!tmcOn() || !e.target.closest('button[data-k="back"]')) return;
-            clearTimeout(timer);
-            timer = setTimeout(() => { amountPadPress('clear'); }, 550);
-        });
-        ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => kp.addEventListener(ev, () => clearTimeout(timer)));
-    }
 
     // 关窗：收起面板、标签行、键盘高度
     modal.addEventListener('hidden.bs.modal', () => {

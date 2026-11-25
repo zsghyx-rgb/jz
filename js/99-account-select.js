@@ -67,7 +67,7 @@ function accSelectOpen(selectId) {
 }
 
 /** fixed 定位：默认对齐触发器底部、宽度与触发器相同。
- *  5.2.1 紧凑布局：账户胶囊在屏幕下半部，列表向上展开，宽度至少 240px（胶囊本身很窄）。 */
+ *  紧凑布局：账户胶囊在屏幕下半部，列表向上展开，宽度至少 240px（胶囊本身很窄）。 */
 function _accSelectPlace(selectId) {
     const trigger = $('trigger-' + selectId);
     const dropdown = $('dropdown-' + selectId);
