@@ -715,7 +715,7 @@
     border-top: none;
 }
 
-/* ═══════════ 5.1.1：新增/编辑收支 —— 大金额、数字键盘、日期快捷、保存并再记、备注联想 ═══════════ */
+/* ═══════════ 新增/编辑收支 —— 大金额、数字键盘、日期快捷、保存并再记、备注联想 ═══════════ */
 .tm-amount-card.tm-amount-big { padding: 14px 16px 10px; cursor: pointer; }
 /* 收支金额字号与转账金额保持一致（转账实际显示：符号 1.6rem / 数字 1.6rem） */
 .tm-amount-card.tm-amount-big .amount-currency { font-size: 1.6rem; }
@@ -732,13 +732,15 @@
 .amount-expr-hint { text-align: right; padding-top: 2px; font-size: 0.95rem; font-weight: 600; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums; }
 .amount-expr-hint.is-bad { color: var(--app-expense); }
 
+/* 键盘：1 2 3 ⌫ / 4 5 6 － / 7 8 9 ＋ / 再记(删除) 0 . 保存
+   没有 C 和 =：长按退格清空，保存时自动算出算式结果；键盘显示时用它的「再记 / 保存」代替底部保存栏。
+   （紧凑布局只额外把按键高度换成设置里的值，见 css/45） */
 .amount-keypad {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
-    flex: none; padding: 8px 10px 6px;
-    border-top: 1px solid var(--bs-border-color);
+    flex: none; padding: 2px 10px calc(8px + env(safe-area-inset-bottom, 0px));
 }
 .amount-keypad button {
-    height: 46px; border: 0; border-radius: 12px;
+    height: 56px; border: 0; border-radius: 12px;
     background: var(--bs-tertiary-bg); color: var(--bs-body-color);
     font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
@@ -750,6 +752,31 @@
 .amount-keypad .kp-eq { color: var(--bs-secondary-color); }
 .amount-keypad .kp-eq.is-ready { background: var(--bs-primary); color: var(--app-on-primary); }
 .amount-keypad button:disabled { opacity: .4; }
+.amount-keypad [data-k="clear"], .amount-keypad [data-k="="] { display: none; }
+.amount-keypad .kp-c { display: flex; align-items: center; justify-content: center; }
+.amount-keypad [data-k="1"] { order: 1; }
+.amount-keypad [data-k="2"] { order: 2; }
+.amount-keypad [data-k="3"] { order: 3; }
+.amount-keypad [data-k="back"] { order: 4; }
+.amount-keypad [data-k="4"] { order: 5; }
+.amount-keypad [data-k="5"] { order: 6; }
+.amount-keypad [data-k="6"] { order: 7; }
+.amount-keypad [data-k="-"] { order: 8; }
+.amount-keypad [data-k="7"] { order: 9; }
+.amount-keypad [data-k="8"] { order: 10; }
+.amount-keypad [data-k="9"] { order: 11; }
+.amount-keypad [data-k="+"] { order: 12; }
+.amount-keypad [data-k="left"] { order: 13; }
+.amount-keypad [data-k="0"] { order: 14; }
+.amount-keypad [data-k="."] { order: 15; }
+.amount-keypad [data-k="save"] { order: 16; }
+.amount-keypad .kp-left { font-size: 0.95rem; font-weight: 600; color: var(--bs-body-color); }
+.amount-keypad .kp-left.is-del { color: var(--app-expense); }
+.amount-keypad .kp-save { background: var(--bs-primary); color: var(--app-on-primary); font-size: 1.05rem; }
+.amount-keypad .kp-save:active { filter: brightness(.9); background: var(--bs-primary); }
+
+/* 底部保存栏：数字键盘显示时由键盘里的「保存」代替；键盘收起（系统键盘 / 拆分）时才出现 */
+#edit-transaction-form.kp-on #trans-amount-bar { display: none; }
 
 .tm-date-chips { display: flex; gap: 6px; padding: 8px 2px 2px; }
 .tm-date-chips button {
