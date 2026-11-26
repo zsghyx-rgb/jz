@@ -77,7 +77,7 @@ function applyTransLayout(layout) {
     }
     document.documentElement.setAttribute('data-trans-layout', layout);
     renderTransLayoutSettings();
-    try { applyTmcSizes(); renderTmcSizeSettings(); } catch (e) { console.error('[tmc] 应用尺寸设置失败', e); }
+    try { applyTransSizes(); renderTransSizeSettings(); } catch (e) { console.error('[tmc] 应用尺寸设置失败', e); }   // 两种样式各有一套大小，js/63-trans-sizes.js
     if (layout === 'compact') tmcSync();
     return layout;
 }
@@ -91,58 +91,6 @@ function setTransLayout(layout) {
     if (typeof showToast === 'function') showToast(`已切换为「${real === 'compact' ? '紧凑' : '经典'}」记账窗口`, 'success', 1600);
 }
 
-/* ═══════════ 二点五、尺寸自定义（设置 › 外观与主题 › 记账窗口样式；只保存在本机） ═══════════
- * 三项：分类每行个数、分类图标大小、键盘按键高度。写成 <html> 上的 CSS 变量，css/45 里带默认值，所以没设置也正常。 */
-const TMC_SIZE_KEY = 'APP_tmc_sizes';
-const TMC_SIZE_DEF = {
-    cols: { def: 4,  min: 3,  max: 6,  step: 1, cssVar: '--tmc-cat-cols', unit: '' },
-    icon: { def: 56, min: 40, max: 72, step: 2, cssVar: '--tmc-cat-icon', unit: 'px' },
-    key:  { def: 56, min: 40, max: 72, step: 2, cssVar: '--tmc-key-h',    unit: 'px' }
-};
-
-function _tmcClampSize(k, v) {
-    const d = TMC_SIZE_DEF[k]; v = Math.round(Number(v));
-    if (!isFinite(v)) return d.def;
-    return Math.min(d.max, Math.max(d.min, v));
-}
-
-function getTmcSizes() {
-    let raw = {};
-    try { raw = JSON.parse(localStorage.getItem(TMC_SIZE_KEY) || '{}') || {}; } catch (_) { raw = {}; }
-    const out = {};
-    Object.keys(TMC_SIZE_DEF).forEach(k => { out[k] = raw[k] == null ? TMC_SIZE_DEF[k].def : _tmcClampSize(k, raw[k]); });
-    return out;
-}
-
-function applyTmcSizes(sz) {
-    sz = sz || getTmcSizes();
-    const st = document.documentElement && document.documentElement.style;
-    if (!st || !st.setProperty) return;
-    Object.keys(TMC_SIZE_DEF).forEach(k => st.setProperty(TMC_SIZE_DEF[k].cssVar, sz[k] + TMC_SIZE_DEF[k].unit));
-}
-
-function renderTmcSizeSettings() {
-    const sz = getTmcSizes();
-    Object.keys(TMC_SIZE_DEF).forEach(k => {
-        const inp = $('tmc-size-' + k), val = $('tmc-size-' + k + '-val');
-        if (inp) inp.value = sz[k];
-        if (val) val.textContent = sz[k] + (k === 'cols' ? ' 个' : ' px');
-    });
-}
-
-function setTmcSize(k, v) {
-    if (!TMC_SIZE_DEF[k]) return;
-    const sz = getTmcSizes(); sz[k] = _tmcClampSize(k, v);
-    try { localStorage.setItem(TMC_SIZE_KEY, JSON.stringify(sz)); } catch (_) {}
-    applyTmcSizes(sz); renderTmcSizeSettings();
-}
-
-function resetTmcSizes() {
-    try { localStorage.removeItem(TMC_SIZE_KEY); } catch (_) {}
-    applyTmcSizes(); renderTmcSizeSettings();
-    if (typeof showToast === 'function') showToast('已恢复默认大小', 'success', 1400);
-}
-
 function renderTransLayoutSettings() {
     const cur = document.documentElement.getAttribute('data-trans-layout') || 'classic';
     document.querySelectorAll('#trans-layout-seg button').forEach(el => {
@@ -150,9 +98,6 @@ function renderTransLayoutSettings() {
         el.classList.toggle('selected', on);
         el.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    // 大小滑块只对紧凑样式有用：选经典时不显示
-    const box = $('tmc-size-box');
-    if (box) box.style.display = cur === 'compact' ? '' : 'none';
 }
 
 /* ═══════════ 三、状态同步（胶囊文字、拆分按钮） ═══════════
@@ -304,17 +249,6 @@ function tmcInitEvents() {
 
     // 点别处：收起面板
     document.addEventListener('click', e => { if (tmcOn() && !e.target.closest('#tmc-bar')) tmcClosePops(); });
-
-    // 备注 / 标签输入完（失焦）后，数字键盘自动回来（原来要再点一下金额区）
-    form.addEventListener('focusout', () => setTimeout(() => {
-        if (!tmcOn() || !_padTempHidden) return;
-        const a = document.activeElement;
-        const typing = a && form.contains(a) && a.id !== 'edit-trans-amount' &&
-            ((a.tagName === 'INPUT' && (!a.type || a.type === 'text' || a.type === 'search')) || a.tagName === 'TEXTAREA');
-        if (typing) return;
-        _padTempHidden = false;
-        amountPadSync();
-    }, 80));
 
     // 关窗：收起面板、标签行、键盘高度
     modal.addEventListener('hidden.bs.modal', () => {

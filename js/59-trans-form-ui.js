@@ -130,8 +130,11 @@ function amountPadSync() {
     const tg = $('amount-kb-toggle');
     if (tg) { tg.classList.toggle('active', !padOn); tg.title = padOn ? '改用系统键盘' : '改用数字键盘'; }
     $('trans-amount-card')?.classList.toggle('pad-active', padOn && formVisible && !_inSplitMode);
-    // 数字键盘显示时，键盘里的「再记 / 保存」代替底部保存栏（css/40）；紧凑布局再同步胶囊文字 / 拆分按钮
+    // 数字键盘显示时，键盘里的「再记 / 保存」代替底部保存栏（css/40）；
+    // 点了备注 / 标签（键盘临时收起）时底部栏也隐藏——输入完键盘自动回来，在键盘里保存；系统键盘模式 / 拆分 / 只读查看时才显示底部栏
     form.classList.toggle('kp-on', kp.style.display !== 'none');
+    form.classList.toggle('kp-typing', formVisible && mode !== 'view' && !_inSplitMode && padOn && _padTempHidden);
+    // 紧凑布局再同步胶囊文字 / 拆分按钮
     kpSyncLeft();
     if (typeof tmcSync === 'function') tmcSync();
 }
@@ -337,4 +340,14 @@ document.addEventListener('DOMContentLoaded', () => {
             amountPadSync();
         }
     });
+    // 备注 / 标签输入完（失焦）后，数字键盘自动回来（不用再点一下金额区）
+    if (form) form.addEventListener('focusout', () => setTimeout(() => {
+        if (!_padTempHidden) return;
+        const a = document.activeElement;
+        const typing = a && form.contains(a) && a.id !== 'edit-trans-amount' &&
+            ((a.tagName === 'INPUT' && (!a.type || a.type === 'text' || a.type === 'search')) || a.tagName === 'TEXTAREA');
+        if (typing) return;
+        _padTempHidden = false;
+        amountPadSync();
+    }, 80));
 });
