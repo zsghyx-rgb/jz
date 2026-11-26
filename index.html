@@ -752,21 +752,21 @@
                         <button type="button" data-layout="classic" onclick="setTransLayout('classic')">经典（默认）</button>
                         <button type="button" data-layout="compact" onclick="setTransLayout('compact')">紧凑（分类优先）</button>
                     </div>
-                    <div class="tmc-size-box" id="tmc-size-box" style="display:none;">
-                        <div class="tmc-size-title">紧凑样式的大小</div>
-                        <label class="tmc-size-row"><span class="tmc-size-name">分类每行个数</span>
-                            <input type="range" id="tmc-size-cols" min="3" max="6" step="1" value="4" oninput="setTmcSize('cols', this.value)">
-                            <span class="tmc-size-val" id="tmc-size-cols-val">4 个</span></label>
-                        <label class="tmc-size-row"><span class="tmc-size-name">分类图标大小</span>
-                            <input type="range" id="tmc-size-icon" min="40" max="72" step="2" value="56" oninput="setTmcSize('icon', this.value)">
-                            <span class="tmc-size-val" id="tmc-size-icon-val">56 px</span></label>
-                        <label class="tmc-size-row"><span class="tmc-size-name">键盘按键高度</span>
-                            <input type="range" id="tmc-size-key" min="40" max="72" step="2" value="56" oninput="setTmcSize('key', this.value)">
-                            <span class="tmc-size-val" id="tmc-size-key-val">56 px</span></label>
-                        <button type="button" class="tmc-size-reset" onclick="resetTmcSizes()">恢复默认</button>
+                    <div class="trans-size-box" id="trans-size-box">
+                        <div class="trans-size-title" id="trans-size-title">经典样式的大小</div>
+                        <label class="trans-size-row"><span class="trans-size-name">分类每行个数</span>
+                            <input type="range" id="trans-size-cols" min="3" max="6" step="1" value="4" oninput="setTransSize('cols', this.value)">
+                            <span class="trans-size-val" id="trans-size-cols-val">4 个</span></label>
+                        <label class="trans-size-row"><span class="trans-size-name">分类图标大小</span>
+                            <input type="range" id="trans-size-icon" min="32" max="72" step="2" value="40" oninput="setTransSize('icon', this.value)">
+                            <span class="trans-size-val" id="trans-size-icon-val">40 px</span></label>
+                        <label class="trans-size-row"><span class="trans-size-name">键盘按键高度</span>
+                            <input type="range" id="trans-size-key" min="36" max="72" step="2" value="48" oninput="setTransSize('key', this.value)">
+                            <span class="trans-size-val" id="trans-size-key-val">48 px</span></label>
+                        <button type="button" class="trans-size-reset" onclick="resetTransSizes()">恢复默认</button>
                     </div>
                     <div class="sync-pos-row">
-                        <span class="sync-pos-tip">紧凑：分类一屏显示更多，账户、日期、标签、图片收成胶囊。转账页不变。</span>
+                        <span class="sync-pos-tip">大小滑块只调当前选中的样式，经典和紧凑各记一套。紧凑：分类一屏显示更多，账户、日期、标签、图片收成胶囊。转账页不变。</span>
                     </div>
                 </div>
 
@@ -1766,6 +1766,7 @@
 <script src="js/61-trans-compact.js"></script>
 <script src="js/60-budget.js"></script>
 <script src="js/62-category-icons.js"></script>
+<script src="js/63-trans-sizes.js"></script>
 <script src="js/64-transaction-submit.js"></script>
 <script src="js/66-transaction-filters.js"></script>
 <script src="js/67-batch-edit.js"></script>

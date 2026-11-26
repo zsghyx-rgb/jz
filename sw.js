@@ -56,6 +56,7 @@ const SHELL_URLS = [
     './js/61-trans-compact.js',
   './js/60-budget.js',
   './js/62-category-icons.js',
+  './js/63-trans-sizes.js',
   './js/64-transaction-submit.js',
   './js/66-transaction-filters.js',
   './js/67-batch-edit.js',
