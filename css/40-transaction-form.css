@@ -642,8 +642,10 @@
     padding: 2px 2px 2px;
     gap: 6px 4px;
 }
-.tm-cat-card .cat-icon-circle { width: 40px; height: 40px; font-size: 1rem; }
-.tm-cat-card .cat-grid-item .cat-name { font-size: 0.64rem; }
+/* 每行个数 / 图标大小：设置里的滑块写到 <html> 的 --trans-cat-cols / --trans-cat-icon（js/63-trans-sizes.js），没设置时用这里的默认值 */
+.tm-cat-card .cat-grid { grid-template-columns: repeat(var(--trans-cat-cols, 4), 1fr); }
+.tm-cat-card .cat-icon-circle { width: var(--trans-cat-icon, 40px); height: var(--trans-cat-icon, 40px); font-size: calc(var(--trans-cat-icon, 40px) * 0.4); }
+.tm-cat-card .cat-grid-item .cat-name { font-size: 0.64rem; max-width: calc(var(--trans-cat-icon, 40px) + 20px); }
 /* 拆分入口：分类卡头部的文字按钮（原 26px 图标太小，手机上不好点） */
 .tm-split-btn {
     width: auto;
@@ -735,13 +737,13 @@
 /* 键盘：1 2 3 ⌫ / 4 5 6 － / 7 8 9 ＋ / 再记(删除) 0 . 保存
    没有 C 和 =：长按退格清空，保存时自动算出算式结果；键盘显示时用它的「再记 / 保存」代替底部保存栏。
    左右不留内边距：键盘和上面的分类 / 日期 / 金额卡片同宽（它们都在 .modal-body 的内边距之内）。
-   （紧凑布局只额外把按键高度换成设置里的值、并留出左右边距，见 css/45） */
+   （紧凑布局只额外留出左右边距，见 css/45） */
 .amount-keypad {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
     flex: none; padding: 2px 0 calc(8px + env(safe-area-inset-bottom, 0px));
 }
 .amount-keypad button {
-    height: 56px; border: 0; border-radius: 12px;
+    height: var(--trans-key-h, 48px); border: 0; border-radius: 12px;   /* 设置里的“键盘按键高度”，默认 48px */
     background: var(--bs-tertiary-bg); color: var(--bs-body-color);
     font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
@@ -776,8 +778,10 @@
 .amount-keypad .kp-save { background: var(--bs-primary); color: var(--app-on-primary); font-size: 1.05rem; }
 .amount-keypad .kp-save:active { filter: brightness(.9); background: var(--bs-primary); }
 
-/* 底部保存栏：数字键盘显示时由键盘里的「保存」代替；键盘收起（系统键盘 / 拆分）时才出现 */
-#edit-transaction-form.kp-on #trans-amount-bar { display: none; }
+/* 底部保存栏：数字键盘显示时由键盘里的「保存」代替；点了备注 / 标签（键盘临时收起，输入完自动回来）时也隐藏；
+   只有系统键盘模式 / 拆分 / 只读查看这几种键盘不会回来的情况才出现 */
+#edit-transaction-form.kp-on #trans-amount-bar,
+#edit-transaction-form.kp-typing #trans-amount-bar { display: none; }
 
 .tm-date-chips { display: flex; gap: 6px; padding: 8px 2px 2px; }
 .tm-date-chips button {

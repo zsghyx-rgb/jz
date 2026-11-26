@@ -1,7 +1,7 @@
 /* @file css/45-trans-compact.css
    新增/编辑「支出·收入」的紧凑布局（可选；设置 › 外观与主题 › 记账窗口样式；默认经典）。
    所有生效规则都限定在 html[data-trans-layout="compact"] 之下，经典布局完全不受影响。
-   以后如果决定只保留一种：删掉本文件 + js/61-trans-compact.js + index.html 里 “tmc:begin … tmc:end” 之间的标记 + 设置页“记账窗口样式”一块 + 59/58/70/99 里调用 tmcSync 等的几行钩子即可（键盘在 css/40 + js/59，两种布局共用，不用动；详见 ARCHITECTURE.md）。 */
+   以后如果决定只保留一种：删掉本文件 + js/61-trans-compact.js + index.html 里 “tmc:begin … tmc:end” 之间的标记 + 设置页“记账窗口样式”一块 + 59/58/70/99 里调用 tmcSync 等的几行钩子即可（键盘在 css/40 + js/59、大小设置在 js/63，两种布局共用，不用动；详见 ARCHITECTURE.md）。 */
 
 /* ── 经典布局下：新增的容器/按钮一律隐藏 ── */
 .tmc-bar, .tmc-tagrow, .tmc-memo-wrap, .tmc-split-btn { display: none; }
@@ -44,7 +44,7 @@ html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form .
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form .tm-row-card,
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form #single-meta-section { display: none !important; }
 
-/* 分类每行个数 / 图标大小 / 键盘按键高度：由 设置 › 外观与主题 › 记账窗口样式 里的滑块写到 <html> 的 --tmc-cat-cols / --tmc-cat-icon / --tmc-key-h（没设置时用这里的默认值 4 / 56px / 56px）。 */
+/* 分类每行个数 / 图标大小：设置页滑块写到 <html> 的 --trans-cat-cols / --trans-cat-icon（js/63-trans-sizes.js；紧凑默认 4 个 / 56px，没设置时用这里的默认值）。 */
 /* 分类：弹性区，占满胶囊行上方的全部空间；保留“所有分类”标题行和拆分按钮（与经典一致） */
 html[data-trans-layout="compact"] #editTransactionModal #single-item-row { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section {
@@ -54,13 +54,13 @@ html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section {
 }
 html[data-trans-layout="compact"] #editTransactionModal .tmc-split-btn { display: none !important; }   /* 与经典一致：拆分按钮放在“所有分类”标题行右侧，标题栏里的剪刀按钮保持隐藏 */
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section .cat-grid {
-    flex: 1; min-height: 0; max-height: none; grid-template-columns: repeat(var(--tmc-cat-cols, 4), 1fr);
+    flex: 1; min-height: 0; max-height: none; grid-template-columns: repeat(var(--trans-cat-cols, 4), 1fr);
     align-content: start; grid-auto-rows: max-content;   /* 不让网格把行拉伸去填满高度 */
     gap: 10px 4px; padding: 6px 0 10px;
 }
 html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item { padding: 1px; gap: 4px; }
-html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item .cat-icon-circle { width: var(--tmc-cat-icon, 56px); height: var(--tmc-cat-icon, 56px); font-size: calc(var(--tmc-cat-icon, 56px) * 0.46); }
-html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item .cat-name { max-width: calc(var(--tmc-cat-icon, 56px) + 24px); font-size: 0.74rem; }
+html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item .cat-icon-circle { width: var(--trans-cat-icon, 56px); height: var(--trans-cat-icon, 56px); font-size: calc(var(--trans-cat-icon, 56px) * 0.46); }
+html[data-trans-layout="compact"] #editTransactionModal .cat-grid-item .cat-name { max-width: calc(var(--trans-cat-icon, 56px) + 24px); font-size: 0.74rem; }
 
 /* 胶囊行：账户 · 日期 · 标签 · 图片 */
 html[data-trans-layout="compact"] #editTransactionModal .tmc-bar {
@@ -146,9 +146,8 @@ html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right .tm-amou
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right .amount-kb-toggle { padding: 2px 4px; font-size: 1rem; }
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right .amount-expr-hint { padding: 0; font-size: 0.7rem; line-height: 1.1; }
 
-/* 键盘：按键高度用设置里的滑块值，左右留 10px（键盘排列和「再记 / 保存」在 css/40，两种布局共用） */
+/* 键盘：左右留 10px（排列、「再记 / 保存」、按键高度都在 css/40，两种布局共用） */
 html[data-trans-layout="compact"] #editTransactionModal .amount-keypad { padding-left: 10px; padding-right: 10px; }
-html[data-trans-layout="compact"] #editTransactionModal .amount-keypad button { height: var(--tmc-key-h, 56px); }
 
 /* 只读查看：胶囊不可点（附件胶囊除外，能打开预览） */
 html[data-trans-layout="compact"] #editTransactionModal .trans-modal-v2.view-only .tmc-pill:not(#tmc-att-pill) { pointer-events: none; }
