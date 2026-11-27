@@ -156,10 +156,11 @@ html[data-trans-layout="compact"] #editTransactionModal .trans-modal-v2.view-onl
    弹窗主体 .modal-body 本来就是可滚动容器（css/40）。紧凑布局只要让内容“可以比主体高”，浏览器 / iOS 聚焦输入框时
    就会像经典布局那样自动把它滚到键盘上方（键盘、悬浮条等细节都由系统处理）：
    1) 分类区（.trans-scroll-area）设了最小高度，不会被压成 0；没有键盘时表单撑满主体，胶囊行 / 备注行仍贴底；
-   2) 点备注 / 标签（数字键盘临时收起）时，主体底部多出一段滚动空间，保证底部那一行有地方“滚上来”。
-   这段空间只是“让它能滚”，大小不用精确（够大就行），不跟键盘高度挂钩。 */
+   2) 点备注 / 标签（数字键盘临时收起）时，主体底部多出一屏高的滚动空间，js/61 再把输入框滚到主体顶部（scrollIntoView）：
+   只靠浏览器默认的“滚到键盘上沿”不够，iOS 26 键盘上方的悬浮条不算进可视区，输入框会落在悬浮条后面；
+   滚到主体顶部则一定在键盘和悬浮条上方，不需要知道它们多高。 */
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form { flex: 1 0 auto; }
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form .trans-scroll-area { min-height: 220px; }
 html[data-trans-layout="compact"] #editTransactionModal .modal-body::after { content: ""; flex: none; height: 0; }
 html[data-trans-layout="compact"] #editTransactionModal:has(#edit-trans-desc:focus) .modal-body::after,
-html[data-trans-layout="compact"] #editTransactionModal:has(#edit-trans-tags:focus) .modal-body::after { height: 60vh; }
+html[data-trans-layout="compact"] #editTransactionModal:has(#edit-trans-tags:focus) .modal-body::after { height: 100dvh; }
