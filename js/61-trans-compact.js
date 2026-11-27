@@ -225,6 +225,16 @@ function tmcInitEvents() {
     // 点别处：收起面板
     document.addEventListener('click', e => { if (tmcOn() && !e.target.closest('#tmc-bar')) tmcClosePops(); });
 
+    // 点备注 / 标签：把输入框滚到弹窗主体顶部（主体底部此时有一屏高的滚动空间，见 css/45）。
+    // 不估算任何高度：输入框在顶部，一定在系统键盘和 iOS 26 悬浮条上方。键盘动画结束后再滚一次，压过 iOS 自己的滚动。
+    const revealInput = e => {
+        const t = e.target;
+        if (!tmcOn() || !t || (t.id !== 'edit-trans-desc' && t.id !== 'edit-trans-tags')) return;
+        const go = () => { if (document.activeElement === t) { const r = t.closest('.tmc-memo, .tmc-tagrow') || t; r.scrollIntoView({ block: 'start' }); } };
+        setTimeout(go, 60); setTimeout(go, 400);
+    };
+    form.addEventListener('focusin', revealInput);
+
     // 关窗：收起面板、标签行
     modal.addEventListener('hidden.bs.modal', () => {
         ['tmc-pop-date', 'tmc-pop-att'].forEach(id => { const el = $(id); if (el) el.classList.remove('open'); });
