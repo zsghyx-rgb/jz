@@ -4,7 +4,7 @@
    以后如果决定只保留一种：删掉本文件 + js/61-trans-compact.js + index.html 里 “tmc:begin … tmc:end” 之间的标记 + 设置页“记账窗口样式”一块 + 59/58/70/99 里调用 tmcSync 等的几行钩子即可（键盘在 css/40 + js/59、大小设置在 js/63，两种布局共用，不用动；详见 ARCHITECTURE.md）。 */
 
 /* ── 经典布局下：新增的容器/按钮一律隐藏 ── */
-.tmc-bar, .tmc-tagrow, .tmc-memo-wrap, .tmc-split-btn { display: none; }
+.tmc-bar, .tmc-tagrow, .tmc-memo-wrap { display: none; }
 
 /* ── 紧凑布局 ── */
 :root[data-trans-layout="compact"] #editTransactionModal {
@@ -28,11 +28,6 @@ html[data-trans-layout="compact"] #editTransactionModal .modal-header .btn-close
 html[data-trans-layout="compact"][data-bs-theme="dark"] #editTransactionModal .modal-header .btn-close {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f8f9fa'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e");
 }
-html[data-trans-layout="compact"] #editTransactionModal .tmc-split-btn {
-    order: 2; flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%;
-    background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); font-size: 1rem;
-    display: flex; align-items: center; justify-content: center;
-}
 html[data-trans-layout="compact"] #editTransactionModal .trans-type-btn { padding: 6px 4px; }
 
 /* 主体：不再整体滚动，只有分类网格在自己的区域里滚 */
@@ -52,7 +47,6 @@ html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section {
     background: transparent; border-radius: 0; margin: 0; padding: 6px 8px 0;
     border-top: 1px solid var(--bs-border-color);
 }
-html[data-trans-layout="compact"] #editTransactionModal .tmc-split-btn { display: none !important; }   /* 与经典一致：拆分按钮放在“所有分类”标题行右侧，标题栏里的剪刀按钮保持隐藏 */
 html[data-trans-layout="compact"] #editTransactionModal #cat-grid-section .cat-grid {
     flex: 1; min-height: 0; max-height: none; grid-template-columns: repeat(var(--trans-cat-cols, 4), 1fr);
     align-content: start; grid-auto-rows: max-content;   /* 不让网格把行拉伸去填满高度 */
@@ -113,7 +107,6 @@ html[data-trans-layout="compact"] #editTransactionModal .tmc-tag-ok {
     flex: none; width: 42px; height: 42px; border: 0; border-radius: 12px;
     background: var(--bs-primary); color: var(--app-on-primary); font-size: 1.2rem;
 }
-html[data-trans-layout="compact"] #editTransactionModal .tmc-tagrow .tag-suggest-list { top: auto; bottom: calc(100% + 4px); }
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form.split-mode .tmc-tagrow,
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form.split-mode #tmc-tag-pill { display: none; }
 
@@ -129,7 +122,6 @@ html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-left .desc-sug
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-left #desc-collapse-wrap { background: transparent; margin: 0; height: 46px; padding: 0 10px; }
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-left #desc-collapse-wrap .tm-row-chevron { display: none; }
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-left .tm-meta-input { font-size: 0.9rem; }
-html[data-trans-layout="compact"] #editTransactionModal .tmc-memo .desc-suggest-list { top: auto; bottom: calc(100% + 6px); }
 html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form.split-mode #tmc-memo-wrap { display: none; }
 html[data-trans-layout="compact"] #editTransactionModal .tmc-memo-right {
     flex: none; display: flex; align-items: center; margin-left: 4px; padding-left: 10px;
