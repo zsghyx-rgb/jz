@@ -220,27 +220,33 @@ function tmcInitEvents() {
     // 点别处：收起面板
     document.addEventListener('click', e => { if (tmcOn() && !e.target.closest('#tmc-bar')) tmcClosePops(); });
 
-    // 点备注 / 标签：把输入框滚到弹窗主体顶部（主体底部此时有一屏高的滚动空间，见 css/45）。
-    // 不估算任何高度：输入框在顶部，一定在系统键盘和 iOS 26 悬浮条上方。键盘动画结束后再滚一次，压过 iOS 自己的滚动；页面被 iOS 顶起时复位（见下）。
-    const revealInput = e => {
-        const t = e.target;
-        if (!tmcOn() || !t || (t.id !== 'edit-trans-desc' && t.id !== 'edit-trans-tags')) return;
-        const go = () => {
-            if (document.activeElement !== t) return;
-            const r = t.closest('.tmc-memo, .tmc-tagrow') || t;
-            r.scrollIntoView({ block: 'start' });
-            // iOS 点输入框时会先把整个页面（可视区）往上顶，再叠上面这次滚动，输入框就跑出屏幕上沿；页面被顶起就复位，只留弹窗主体内部的滚动
-            const vv = window.visualViewport;
-            if (window.scrollY > 1 || (vv && vv.offsetTop > 1)) { try { window.scrollTo(0, 0); } catch (_) {} }
-        };
-        setTimeout(go, 60); setTimeout(go, 400);
+    // 点备注 / 标签：把输入框滚到弹窗主体顶部（给弹窗加 .tmc-typing，主体底部多出一屏高的滚动空间，见 css/45）。
+    // 不估算任何高度：输入框在顶部，一定在系统键盘和 iOS 26 悬浮条上方。
+    // 手指按下（键盘还没弹）就先滚一次：iOS 看到输入框已在可视区里，就不会先把页面顶起来再退回（否则会看到输入框先冲出屏幕再回落）；
+    // 聚焦后、键盘动画结束后各补滚一次，压过 iOS 自己的滚动；页面仍被顶起时复位。
+    const isField = t => !!t && (t.id === 'edit-trans-desc' || t.id === 'edit-trans-tags');
+    const reveal = (t, force) => {
+        if (!force && document.activeElement !== t) return;
+        modal.classList.add('tmc-typing');
+        const r = t.closest('.tmc-memo, .tmc-tagrow') || t;
+        r.scrollIntoView({ block: 'start' });
+        const vv = window.visualViewport;
+        if (window.scrollY > 1 || (vv && vv.offsetTop > 1)) { try { window.scrollTo(0, 0); } catch (_) {} }
     };
-    form.addEventListener('focusin', revealInput);
+    form.addEventListener('pointerdown', e => { if (tmcOn() && isField(e.target)) reveal(e.target, true); });
+    form.addEventListener('focusin', e => {
+        const t = e.target;
+        if (!tmcOn() || !isField(t)) return;
+        reveal(t, true);
+        setTimeout(() => reveal(t), 60); setTimeout(() => reveal(t), 400);
+    });
+    form.addEventListener('focusout', e => { if (!isField(e.relatedTarget)) modal.classList.remove('tmc-typing'); });
 
     // 关窗：收起面板、标签行
     modal.addEventListener('hidden.bs.modal', () => {
         ['tmc-pop-date', 'tmc-pop-att'].forEach(id => { const el = $(id); if (el) el.classList.remove('open'); });
         const row = $('tmc-tagrow'); if (row) row.classList.remove('open');
+        modal.classList.remove('tmc-typing');
         tmcSync();
     });
 }
