@@ -100,7 +100,7 @@ function renderTransLayoutSettings() {
     });
 }
 
-/* ═══════════ 三、状态同步（胶囊文字、拆分按钮） ═══════════
+/* ═══════════ 三、状态同步（胶囊文字） ═══════════
  * 由 amountPadSync / renderAttachmentThumbs / resetAttachmentUI / exitSplitMode 调用；经典布局下立刻返回。 */
 function _tmcAttachmentCount() {
     const v = ($('edit-trans-attachment-id') && $('edit-trans-attachment-id').value) || '';
@@ -115,11 +115,6 @@ function tmcSync() {
     const viewOnly = !!(content && content.classList.contains('view-only'));
     const mode = ($('edit-trans-mode') && $('edit-trans-mode').value) || 'add';
     const formVisible = form.style.display !== 'none';
-
-    // 标题栏右侧的“拆分”：只在支出表单、非拆分状态、非只读时出现（沿用原来 #split-toggle-btn 的显示规则）
-    const sb = $('tmc-split-btn'), orig = $('split-toggle-btn');
-    const canSplit = formVisible && !viewOnly && mode !== 'view' && !_inSplitMode && orig && orig.style.display !== 'none';
-    if (sb) sb.style.display = canSplit ? '' : 'none';
 
     // 标签胶囊：有内容就显示内容
     const tags = (($('edit-trans-tags') && $('edit-trans-tags').value) || '').trim();
