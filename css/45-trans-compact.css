@@ -152,9 +152,14 @@ html[data-trans-layout="compact"] #editTransactionModal .amount-keypad { padding
 /* 只读查看：胶囊不可点（附件胶囊除外，能打开预览） */
 html[data-trans-layout="compact"] #editTransactionModal .trans-modal-v2.view-only .tmc-pill:not(#tmc-att-pill) { pointer-events: none; }
 
-/* 系统键盘弹出时（js/61-trans-compact.js 用 visualViewport 算出键盘高度）：弹窗整体缩到键盘上方，分类区自动让出空间 */
-html.tmc-kb[data-trans-layout="compact"] #editTransactionModal .modal-dialog,
-html.tmc-kb[data-trans-layout="compact"] #editTransactionModal .modal-content {
-    height: calc(100dvh - var(--tmc-kb, 0px)); max-height: calc(100dvh - var(--tmc-kb, 0px));
-}
-html.tmc-pan[data-trans-layout="compact"] #editTransactionModal .modal-content { transform: translateY(var(--tmc-vtop, 0px)); }
+/* ── 系统键盘：和经典布局一样用原生滚动，不用 JS 估算任何高度 ──
+   弹窗主体 .modal-body 本来就是可滚动容器（css/40）。紧凑布局只要让内容“可以比主体高”，浏览器 / iOS 聚焦输入框时
+   就会像经典布局那样自动把它滚到键盘上方（键盘、悬浮条等细节都由系统处理）：
+   1) 分类区（.trans-scroll-area）设了最小高度，不会被压成 0；没有键盘时表单撑满主体，胶囊行 / 备注行仍贴底；
+   2) 点备注 / 标签（数字键盘临时收起）时，主体底部多出一段滚动空间，保证底部那一行有地方“滚上来”。
+   这段空间只是“让它能滚”，大小不用精确（够大就行），不跟键盘高度挂钩。 */
+html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form { flex: 1 0 auto; }
+html[data-trans-layout="compact"] #editTransactionModal #edit-transaction-form .trans-scroll-area { min-height: 220px; }
+html[data-trans-layout="compact"] #editTransactionModal .modal-body::after { content: ""; flex: none; height: 0; }
+html[data-trans-layout="compact"] #editTransactionModal:has(#edit-trans-desc:focus) .modal-body::after,
+html[data-trans-layout="compact"] #editTransactionModal:has(#edit-trans-tags:focus) .modal-body::after { height: 60vh; }
