@@ -221,11 +221,18 @@ function tmcInitEvents() {
     document.addEventListener('click', e => { if (tmcOn() && !e.target.closest('#tmc-bar')) tmcClosePops(); });
 
     // 点备注 / 标签：把输入框滚到弹窗主体顶部（主体底部此时有一屏高的滚动空间，见 css/45）。
-    // 不估算任何高度：输入框在顶部，一定在系统键盘和 iOS 26 悬浮条上方。键盘动画结束后再滚一次，压过 iOS 自己的滚动。
+    // 不估算任何高度：输入框在顶部，一定在系统键盘和 iOS 26 悬浮条上方。键盘动画结束后再滚一次，压过 iOS 自己的滚动；页面被 iOS 顶起时复位（见下）。
     const revealInput = e => {
         const t = e.target;
         if (!tmcOn() || !t || (t.id !== 'edit-trans-desc' && t.id !== 'edit-trans-tags')) return;
-        const go = () => { if (document.activeElement === t) { const r = t.closest('.tmc-memo, .tmc-tagrow') || t; r.scrollIntoView({ block: 'start' }); } };
+        const go = () => {
+            if (document.activeElement !== t) return;
+            const r = t.closest('.tmc-memo, .tmc-tagrow') || t;
+            r.scrollIntoView({ block: 'start' });
+            // iOS 点输入框时会先把整个页面（可视区）往上顶，再叠上面这次滚动，输入框就跑出屏幕上沿；页面被顶起就复位，只留弹窗主体内部的滚动
+            const vv = window.visualViewport;
+            if (window.scrollY > 1 || (vv && vv.offsetTop > 1)) { try { window.scrollTo(0, 0); } catch (_) {} }
+        };
         setTimeout(go, 60); setTimeout(go, 400);
     };
     form.addEventListener('focusin', revealInput);
