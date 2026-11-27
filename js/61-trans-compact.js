@@ -176,32 +176,7 @@ function tmcCloseTagRow() {
     tmcSync();
 }
 
-/* ═══════════ 五、系统键盘弹出时：弹窗缩到键盘上方 ═══════════
- * iOS 的 100dvh 不随键盘变化。用 visualViewport 估算键盘高度，写进 --tmc-kb，由 css/45 把弹窗高度减掉，
- * 分类区（弹性）自动变矮，备注/金额行留在键盘上方。尽力而为：没有 visualViewport 或算不出来就保持原行为。 */
-function tmcOnViewport() {
-    if (!tmcOn()) return;
-    const vv = window.visualViewport;
-    const root = document.documentElement;
-    const modal = $('editTransactionModal');
-    if (!vv || !modal || !modal.classList.contains('show')) { _tmcKeyboard(root, 0, 0); return; }
-    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-    _tmcKeyboard(root, kb > 120 ? kb : 0, vv.offsetTop);
-}
-function _tmcKeyboard(root, kb, top) {
-    if (kb > 0) {
-        root.style.setProperty('--tmc-kb', kb + 'px');
-        root.style.setProperty('--tmc-vtop', Math.round(top) + 'px');
-        root.classList.add('tmc-kb');
-        root.classList.toggle('tmc-pan', top > 1);
-    } else {
-        root.classList.remove('tmc-kb', 'tmc-pan');
-        root.style.removeProperty('--tmc-kb');
-        root.style.removeProperty('--tmc-vtop');
-    }
-}
-
-/* ═══════════ 六、初始化 ═══════════ */
+/* ═══════════ 五、初始化 ═══════════ */
 function tmcInitEvents() {
     const bar = $('tmc-bar'), form = $('edit-transaction-form'), modal = $('editTransactionModal');
     if (!bar || !form || !modal) return;
@@ -250,17 +225,12 @@ function tmcInitEvents() {
     // 点别处：收起面板
     document.addEventListener('click', e => { if (tmcOn() && !e.target.closest('#tmc-bar')) tmcClosePops(); });
 
-    // 关窗：收起面板、标签行、键盘高度
+    // 关窗：收起面板、标签行
     modal.addEventListener('hidden.bs.modal', () => {
         ['tmc-pop-date', 'tmc-pop-att'].forEach(id => { const el = $(id); if (el) el.classList.remove('open'); });
         const row = $('tmc-tagrow'); if (row) row.classList.remove('open');
-        _tmcKeyboard(document.documentElement, 0, 0);
         tmcSync();
     });
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', tmcOnViewport);
-        window.visualViewport.addEventListener('scroll', tmcOnViewport);
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
