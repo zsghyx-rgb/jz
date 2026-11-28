@@ -262,8 +262,10 @@ function onSubModalHide() {
     if (_inSplitMode) exitSplitMode();
     _splitData = [];
     // 重置只读状态（覆盖收/支/转账三个表单，避免下次新增时残留禁用态）
-    $('editTransactionModal').querySelectorAll('input,select,textarea').forEach(el => { el.disabled = false; });
+    // 5.2.1：连按钮一起恢复——只读查看别人的交易时，键盘按键 / 胶囊等按钮也会被禁用
+    $('editTransactionModal').querySelectorAll('input,select,textarea,button').forEach(el => { el.disabled = false; });
     $('editTransactionModal').querySelector('.trans-modal-v2')?.classList.remove('view-only');
+    if (typeof closeCompactEditors === 'function') closeCompactEditors();
     $('edit-trans-submit-btn').style.display = '';
     $('edit-transfer-submit-btn').style.display = '';
     $('edit-trans-delete-btn').style.setProperty('display','none','important');

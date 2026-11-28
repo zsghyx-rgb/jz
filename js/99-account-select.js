@@ -54,6 +54,27 @@ function accSelectBuild(selectId) {
     });
 }
 
+// 下拉定位：对齐触发器底部；紧凑记账窗口里胶囊较窄，下拉适当加宽并限制在屏幕内
+function _accDropdownPlace(selectId) {
+    const trigger = $('trigger-' + selectId);
+    const dropdown = $('dropdown-' + selectId);
+    if (!trigger || !dropdown) return;
+    const rect = trigger.getBoundingClientRect();
+    const compact = !!document.querySelector('#editTransactionModal .trans-modal-v2.trans-compact');
+    let width = rect.width;
+    let left = rect.left;
+    if (compact) {
+        width = Math.max(rect.width, Math.min(260, window.innerWidth - 16));
+        left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+        dropdown.style.maxHeight = Math.max(160, Math.min(320, window.innerHeight - rect.bottom - 12)) + 'px';
+    } else {
+        dropdown.style.maxHeight = '';
+    }
+    dropdown.style.left = left + 'px';
+    dropdown.style.width = width + 'px';
+    dropdown.style.top = rect.bottom + 'px';
+}
+
 function accSelectOpen(selectId) {
     // 先关闭其他
     ACC_SELECT_IDS.forEach(id => { if (id !== selectId) accSelectClose(id); });
@@ -63,11 +84,7 @@ function accSelectOpen(selectId) {
     if (!trigger || !dropdown) return;
     trigger.classList.add('open');
     dropdown.classList.add('open');
-    // fixed 定位：对齐触发器底部，宽度与触发器相同
-    const rect = trigger.getBoundingClientRect();
-    dropdown.style.left = rect.left + 'px';
-    dropdown.style.width = rect.width + 'px';
-    dropdown.style.top = (rect.bottom) + 'px';
+    _accDropdownPlace(selectId);
 }
 
 function accSelectClose(selectId) {
@@ -79,12 +96,7 @@ function accSelectRepositionAll() {
     ACC_SELECT_IDS.forEach(id => {
         const dropdown = $('dropdown-' + id);
         if (!dropdown || !dropdown.classList.contains('open')) return;
-        const trigger = $('trigger-' + id);
-        if (!trigger) return;
-        const rect = trigger.getBoundingClientRect();
-        dropdown.style.left = rect.left + 'px';
-        dropdown.style.width = rect.width + 'px';
-        dropdown.style.top = rect.bottom + 'px';
+        _accDropdownPlace(id);
     });
 }
 

@@ -40,7 +40,7 @@
         }
     })();
     </script>
-    <title id="app-title">记一笔 v5.2.0</title>
+    <title id="app-title">记一笔 v5.2.1</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -209,7 +209,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.0</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.1</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -742,6 +742,38 @@
                     </div>
                 </div>
 
+                <!-- 5.2.1：记账窗口样式（经典 / 紧凑）。只存本机，不写入加密数据、不参与同步 -->
+                <div class="appearance-block">
+                    <div class="appearance-block-head">
+                        <span class="appearance-block-title">记账窗口样式</span>
+                        <span class="appearance-block-hint">新增/编辑 支出·收入</span>
+                    </div>
+                    <div class="appearance-seg" id="trans-style-seg" role="group" aria-label="记账窗口样式">
+                        <button type="button" data-style="classic" onclick="setTransFormStyle('classic')">经典（默认）</button>
+                        <button type="button" data-style="compact" onclick="setTransFormStyle('compact')">紧凑（分类优先）</button>
+                    </div>
+                    <div class="trans-style-sizes">
+                        <div class="ts-size-caption" id="trans-style-size-caption">经典样式的大小</div>
+                        <label class="ts-size-row" for="ts-size-cols">
+                            <span>分类每行个数</span>
+                            <input type="range" id="ts-size-cols" min="3" max="6" step="1" oninput="setTransFormSize('cols', this.value)">
+                            <span class="ts-size-val" id="ts-size-cols-val">4 个</span>
+                        </label>
+                        <label class="ts-size-row" for="ts-size-icon">
+                            <span>分类图标大小</span>
+                            <input type="range" id="ts-size-icon" min="32" max="56" step="2" oninput="setTransFormSize('icon', this.value)">
+                            <span class="ts-size-val" id="ts-size-icon-val">40 px</span>
+                        </label>
+                        <label class="ts-size-row" for="ts-size-key">
+                            <span>键盘按键高度</span>
+                            <input type="range" id="ts-size-key" min="36" max="64" step="2" oninput="setTransFormSize('key', this.value)">
+                            <span class="ts-size-val" id="ts-size-key-val">46 px</span>
+                        </label>
+                        <button type="button" class="ts-size-reset" onclick="resetTransFormSizes()">恢复默认</button>
+                    </div>
+                    <p class="trans-style-note">大小滑块只调当前选中的样式，经典和紧凑各记一套。紧凑：分类一屏显示更多，账户、日期、标签、图片收成胶囊。转账页不变。</p>
+                </div>
+
                 <div class="appearance-block">
                     <div class="appearance-block-head">
                         <span class="appearance-block-title">同步提示位置</span>
@@ -1118,7 +1150,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.2.0</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.2.1</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -1423,7 +1455,7 @@
                                     </div>
                                     <div class="acc-select-dropdown" id="dropdown-edit-trans-account"></div>
                                 </div>
-                                <div class="tm-combo-trigger tm-date-trigger" onclick="this.querySelector('input').showPicker && this.querySelector('input').showPicker()">
+                                <div class="tm-combo-trigger tm-date-trigger" id="wrap-edit-trans-date" onclick="this.querySelector('input').showPicker && this.querySelector('input').showPicker()">
                                     <div class="tm-row-icon tm-icon-green"><i class="bi bi-calendar3"></i></div>
                                     <div class="tm-row-value" id="edit-trans-date-label">今天</div>
                                     <input type="date" class="tm-date-input-hidden" id="edit-trans-date" required="" onchange="syncDateLabels()">
@@ -1475,7 +1507,7 @@
                         <div id="single-meta-section">
 
                             <!-- 备注 -->
-                            <div class="desc-suggest-wrap">
+                            <div class="desc-suggest-wrap" id="desc-suggest-wrap">
                                 <div class="tm-card tm-meta-box" id="desc-collapse-wrap" onclick="$('edit-trans-desc').focus()">
                                     <input type="text" class="tm-meta-input" id="edit-trans-desc" autocomplete="off"
                                            oninput="onTransDescInput()"
@@ -1519,7 +1551,38 @@
                         </div>
                     </div>
 
-                    <!-- 数字键盘（5.1.1）：支出/收入的金额用它输入，支持 + − 算式；点备注/标签时自动收起 -->
+                    <!-- 5.2.1 紧凑记账窗口（分类优先）：支出 / 收入。
+                         经典模式隐藏；切到紧凑时把金额卡片、备注、标签、账户/日期胶囊、分类网格移进这里，
+                         控件本身不变（id 与逻辑共用），切回经典时原样移回。转账表单不使用。 -->
+                    <div class="compact-panel" id="compact-panel">
+                        <div class="compact-cat-head">
+                            <span>所有分类</span>
+                            <button type="button" id="split-toggle-btn-compact" class="chip-split-btn tm-split-btn" title="拆分账单" onclick="handleSplitBtn()">
+                                <i class="bi bi-scissors"></i><span>拆分</span>
+                            </button>
+                        </div>
+                        <div class="compact-cat-scroll" id="compact-cat-scroll"></div>
+                        <div class="compact-attach-slot" id="compact-attach-slot"></div>
+                        <div class="compact-toolbar" id="compact-toolbar">
+                            <button type="button" class="compact-pill" id="compact-tag-pill" onclick="openCompactTagEditor()">
+                                <i class="bi bi-tag"></i><span class="cp-label">标签</span>
+                            </button>
+                            <button type="button" class="compact-pill" id="compact-img-pill" onclick="openCompactAttachment()">
+                                <i class="bi bi-image"></i><span class="cp-label" id="compact-img-label">图片</span>
+                            </button>
+                        </div>
+                        <div class="compact-editor" id="compact-tag-row">
+                            <div class="compact-editor-box" id="compact-tag-slot"></div>
+                            <button type="button" class="compact-editor-done" id="compact-tag-done" onclick="closeCompactTagEditor()" aria-label="完成标签编辑"><i class="bi bi-check-lg"></i></button>
+                        </div>
+                        <div class="compact-amount-row" id="compact-amount-row">
+                            <div class="compact-note-slot" id="compact-note-slot"></div>
+                            <div class="compact-amt-slot" id="compact-amt-slot"></div>
+                        </div>
+                    </div>
+
+                    <!-- 数字键盘（5.1.1）：支出/收入的金额用它输入，支持 + − 算式；点备注/标签时自动收起。
+                         5.2.1 起底行左侧/右侧改成「再记（或删除）」「保存」，不再使用弹窗底部单独的按钮。 -->
                     <div class="amount-keypad" id="amount-keypad" role="group" aria-label="数字键盘">
                         <button type="button" data-k="7">7</button>
                         <button type="button" data-k="8">8</button>
@@ -1533,10 +1596,11 @@
                         <button type="button" data-k="2">2</button>
                         <button type="button" data-k="3">3</button>
                         <button type="button" data-k="-" class="kp-op">－</button>
-                        <button type="button" data-k="clear" class="kp-fn">C</button>
+                        <button type="button" class="kp-action kp-again" id="kp-again" onclick="submitTransAndContinue()">再记</button>
+                        <button type="button" class="kp-action kp-del" id="kp-delete" onclick="deleteCurrentTransaction()" style="display:none;">删除</button>
                         <button type="button" data-k="0">0</button>
                         <button type="button" data-k=".">.</button>
-                        <button type="button" data-k="=" class="kp-eq" id="kp-eq">=</button>
+                        <button type="submit" class="kp-action kp-save" id="kp-save">保存</button>
                     </div>
 
                     <!-- 底部保存栏（金额已移至顶部卡片） -->
@@ -1710,6 +1774,7 @@
 <script src="js/58-split-items.js"></script>
 <script src="js/59-trans-form-ui.js"></script>
 <script src="js/60-budget.js"></script>
+<script src="js/61-trans-form-style.js"></script>
 <script src="js/62-category-icons.js"></script>
 <script src="js/64-transaction-submit.js"></script>
 <script src="js/66-transaction-filters.js"></script>

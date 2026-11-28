@@ -847,6 +847,60 @@ a { color: var(--app-link, var(--app-primary)); }
     box-shadow: var(--app-shadow-soft);
 }
 
+/* 5.2.1：记账窗口样式（经典 / 紧凑）与大小设置 */
+.trans-style-sizes {
+    margin-top: 10px;
+    padding: 10px 12px 12px;
+    border-radius: 14px;
+    background: var(--app-surface-2);
+}
+.ts-size-caption {
+    font-size: 0.72rem;
+    font-weight: 650;
+    color: var(--app-muted);
+    margin-bottom: 6px;
+}
+.ts-size-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 0.78rem;
+    color: var(--app-text);
+    cursor: pointer;
+}
+.ts-size-row > span:first-child { flex: 0 0 auto; min-width: 5.2em; }
+.ts-size-row input[type="range"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 22px;
+    margin: 0;
+    accent-color: var(--app-primary);
+}
+.ts-size-val {
+    flex: 0 0 auto;
+    min-width: 3.2em;
+    text-align: right;
+    font-size: 0.74rem;
+    color: var(--app-muted);
+    font-variant-numeric: tabular-nums;
+}
+.ts-size-reset {
+    margin-top: 4px;
+    border: none;
+    background: transparent;
+    padding: 2px 0;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--app-link, var(--app-primary));
+}
+.trans-style-note {
+    margin: 10px 0 0;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--app-muted);
+}
+
 /* 统计图表栅格：Bootstrap row 的负外边距在无容器内边距时会撑出 8px 横向滚动 */
 #charts-container { margin-left: 0; margin-right: 0; }
 

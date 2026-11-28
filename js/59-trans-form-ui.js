@@ -101,9 +101,27 @@ function amountPadSync() {
     const tg = $('amount-kb-toggle');
     if (tg) { tg.classList.toggle('active', !padOn); tg.title = padOn ? '改用系统键盘' : '改用数字键盘'; }
     $('trans-amount-card')?.classList.toggle('pad-active', padOn && formVisible && !_inSplitMode);
+    _syncTransActionBar();
+}
+
+// 5.2.1：再记 / 保存已经嵌在数字键盘里，弹窗底部不再常驻按钮。
+// 只有“没有数字键盘、但仍需要保存”的兜底场景（系统键盘模式、拆分模式）才显示底部操作栏。
+function _syncTransActionBar() {
+    const bar = $('trans-amount-bar');
+    if (!bar) return;
+    const form = $('edit-transaction-form');
+    const mode = $('edit-trans-mode') ? $('edit-trans-mode').value : 'add';
+    const kp = $('amount-keypad');
+    const formVisible = form && form.style.display !== 'none';
+    const padVisible = kp && kp.style.display !== 'none';
+    const needFallback = !padVisible && (_padMode === 'system' || _inSplitMode);
+    bar.style.display = (formVisible && mode !== 'view' && needFallback) ? 'block' : 'none';
 }
 
 function amountPadShow() {            // 点金额区：显示数字键盘（系统键盘模式下则聚焦输入）
+    // 从备注/标签切回金额：先收掉系统键盘，避免和数字键盘叠在一起
+    const a = document.activeElement;
+    if (a && (a.id === 'edit-trans-desc' || a.id === 'edit-trans-tags')) a.blur();
     if (_padMode === 'pad') { _padTempHidden = false; amountPadSync(); }
     else { const el = _amtEl(); if (el && !el.disabled) el.focus(); }
 }
@@ -261,6 +279,12 @@ function transFormUiInit(mode) {
     _transKeepOpen = false;
     const again = $('edit-trans-save-again-btn');
     if (again) again.style.display = (mode === 'add') ? '' : 'none';
+    // 5.2.1：键盘底行左侧「再记 / 删除」随模式切换（保存键始终在右下角）
+    const kpAgain = $('kp-again'), kpDel = $('kp-delete'), kpSave = $('kp-save');
+    if (kpAgain) { kpAgain.style.display = (mode === 'add') ? '' : 'none'; kpAgain.disabled = (mode === 'view'); }
+    if (kpDel) { kpDel.style.display = (mode === 'edit') ? '' : 'none'; kpDel.disabled = (mode === 'view'); }
+    if (kpSave) kpSave.disabled = (mode === 'view');
+    if (typeof closeCompactEditors === 'function') closeCompactEditors();
     hideDescSuggest();
     _updateExprHint();
     amountPadSync();
@@ -268,7 +292,8 @@ function transFormUiInit(mode) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 键盘按键（事件委托）。用 pointerdown 而不是 click：连续快速点按时更跟手，也避免 iOS 的 300ms 延迟/双击放大
+    // 键盘按键（事件委托）。用 pointerdown 而不是 click：连续快速点按时更跟手，也避免 iOS 的 300ms 延迟/双击放大。
+    // 5.2.1 起键盘右下角是「保存」提交键，不参与 data-k 处理；点击默认行为只对带 data-k 的数字键阻止。
     const kp = $('amount-keypad');
     if (kp) {
         kp.addEventListener('pointerdown', e => {
@@ -277,7 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             amountPadPress(b.dataset.k);
         });
-        kp.addEventListener('click', e => e.preventDefault());
+        kp.addEventListener('click', e => {
+            if (e.target.closest('button[data-k]')) e.preventDefault();
+        });
     }
     // 备注联想：用 pointerdown 选择，避免先触发输入框失焦把列表关掉
     const ul = $('desc-suggest-list');

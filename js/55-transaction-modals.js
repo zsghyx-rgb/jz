@@ -7,6 +7,8 @@ function switchTransTab(tab, skipReset) {
     _switchTransTabCore(tab, skipReset);
     amountPadSync();
     syncDateChips();
+    // 5.2.1：按设置的样式重排支出/收入表单（紧凑 / 经典）；转账表单不受影响
+    if (typeof applyTransFormLayout === 'function') applyTransFormLayout();
 }
 
 function _switchTransTabCore(tab, skipReset) {

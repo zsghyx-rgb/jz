@@ -202,6 +202,8 @@ function _applySplitUI(active) {
     const catSel = $('edit-trans-category');
     if (catSel) { if (active) catSel.removeAttribute('required'); else catSel.setAttribute('required', ''); }
     amountPadSync();          // 拆分时不需要数字键盘
+    // 5.2.1：拆分分录区固定用经典布局；退出拆分后 applyTransFormLayout 会按设置恢复紧凑
+    if (typeof applyTransFormLayout === 'function') applyTransFormLayout();
 }
 
 function enterSplitMode() {

@@ -98,6 +98,7 @@ function resetAttachmentUI() {
         container.style.setProperty('display', 'none', 'important');
     }
     if (idField) idField.value = '';
+    if (typeof syncCompactAttachment === 'function') syncCompactAttachment();
 }
 
 async function compressImage(file, maxKB = 500) {
@@ -181,6 +182,8 @@ async function handleAttachmentSelected(input) {
 
     isUploadingAttachment = true;
     $('edit-trans-submit-btn').disabled = true;
+    const kpSaveBtn = $('kp-save');
+    if (kpSaveBtn) kpSaveBtn.disabled = true;
 
     try {
         let base64Data, fileName, mimeType, fileSizeKB;
@@ -232,6 +235,7 @@ async function handleAttachmentSelected(input) {
     } finally {
         isUploadingAttachment = false;
         $('edit-trans-submit-btn').disabled = false;
+        if (kpSaveBtn) kpSaveBtn.disabled = false;
         input.value = '';
     }
 }
@@ -244,6 +248,7 @@ function renderAttachmentThumbs(ids) {
 
     if (!ids || ids.length === 0) {
         container.style.setProperty('display', 'none', 'important');
+        if (typeof syncCompactAttachment === 'function') syncCompactAttachment();
         return;
     }
 
@@ -275,6 +280,7 @@ function renderAttachmentThumbs(ids) {
         }
         container.appendChild(wrapper);
     });
+    if (typeof syncCompactAttachment === 'function') syncCompactAttachment();
 }
 
 // 5. 删除特定位置的图片（直接删 + 可撤销，不再弹原生确认框）

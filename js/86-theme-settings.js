@@ -88,6 +88,7 @@ function renderThemeSettings() {
         el.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     if (typeof syncBarRefreshResetUI === 'function') syncBarRefreshResetUI();   // 同步提示位置：默认 / 自定义
+    if (typeof renderTransFormStyleSettings === 'function') renderTransFormStyleSettings();   // 5.2.1：记账窗口样式与大小
 }
 
 // ── Chart.js 主题 ────────────────────────────────────────────
