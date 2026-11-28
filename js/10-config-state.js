@@ -46,7 +46,7 @@ let _barOkText = '';             // 状态条在“已同步”状态下显示�
 let _barKey = '';                // 上次渲染的状态指纹（没变化就不动 DOM）
 let driveIsSyncing = false;      // 防并发
 let offlineMode = localStorage.getItem('APP_offline_mode') === 'true'; // 离线模式（只读本机缓存）
-// 改完数据后自动同步（延迟见 AUTO_SYNC_DELAY_MS）
+// 5.1.8：改完数据后自动同步（延迟见 AUTO_SYNC_DELAY_MS，5.2.0 起 3 秒）
 let _editSeq = 0;                // 每次改动 +1：同步开始时记一次，结束时就知道“同步期间有没有又改过”
 let _unsavedSince = 0;           // 本轮未同步改动从什么时候开始（状态条延迟提示用）
 let _autoSyncTimer = null;
