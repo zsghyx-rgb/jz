@@ -40,7 +40,7 @@
         }
     })();
     </script>
-    <title id="app-title">记一笔 v5.2.1</title>
+    <title id="app-title">记一笔 v5.2.2</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -209,7 +209,7 @@
         </div>
     </div>
     <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;pointer-events:none;">
-        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.1</span>
+        <span class="text-muted" style="font-size:0.7rem;" id="sidebar-version">version 5.2.2</span>
     </div>
 </div>
 <div id="app-wrapper" class="d-none">
@@ -1150,7 +1150,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-4">
                         <h5>记一笔</h5>
-                        <p class="text-muted small">版本 <span id="settings-version">v5.2.1</span></p>
+                        <p class="text-muted small">版本 <span id="settings-version">v5.2.2</span></p>
                         <p class="text-muted small mb-0">个人财务记账 PWA 应用</p>
                     </div>
                 </div>
@@ -1508,7 +1508,7 @@
 
                             <!-- 备注 -->
                             <div class="desc-suggest-wrap" id="desc-suggest-wrap">
-                                <div class="tm-card tm-meta-box" id="desc-collapse-wrap" onclick="$('edit-trans-desc').focus()">
+                                <div class="tm-card tm-meta-box" id="desc-collapse-wrap" onclick="focusTransNote()">
                                     <input type="text" class="tm-meta-input" id="edit-trans-desc" autocomplete="off"
                                            oninput="onTransDescInput()"
                                            onfocus="onTransDescInput()"
@@ -1521,11 +1521,12 @@
                             <div id="edit-trans-desc-hint" style="display:none;align-items:center;gap:6px;margin-top:-2px;margin-bottom:6px;padding:3px 8px;border-radius:5px;background:rgba(var(--bs-primary-rgb),0.08);border:1px solid rgba(var(--bs-primary-rgb),0.2);font-size:0.78rem;"></div>
 
                             <!-- 标签：始终显示，样式与备注框一致，可直接输入或从下拉中选择历史标签 -->
-                            <div class="tm-card tm-meta-box" id="tags-collapse-wrap" onclick="$('edit-trans-tags').focus()">
+                            <div class="tm-card tm-meta-box" id="tags-collapse-wrap" onclick="focusTransTags()">
                                 <i class="bi bi-tag tm-meta-tag-icon"></i>
                                 <div class="tag-suggest-wrap" style="flex:1;min-width:0;display:flex;">
                                     <input type="text" class="tm-meta-input" id="edit-trans-tags"
                                            placeholder="添加标签，多个用空格分隔…" autocomplete="off"
+                                           oninput="syncCompactTagPill()"
                                            onfocus="openTagSuggest(this,'ts-single')"
                                            onblur="scheduleCloseTagSuggest('ts-single')">
                                     <ul class="tag-suggest-list" id="ts-single"></ul>

@@ -21,8 +21,8 @@
 #editTransactionModal .modal-body {
     display: flex !important;
     flex-direction: column !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    /* 5.2.2：只让表单内部的滚动区滚动；外层不再跟着 iOS 键盘一起被顶走 */
+    overflow: hidden !important;
     flex: 1 !important;
     min-height: 0;
     padding-top: 6px !important;
@@ -742,7 +742,9 @@
 
 .amount-keypad {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
-    flex: none; padding: 8px 10px 6px;
+    flex: none;
+    /* 5.2.2：按键整体上移，别贴着屏幕底边 */
+    padding: 8px 10px calc(14px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--bs-border-color);
 }
 .amount-keypad button {
@@ -878,6 +880,7 @@
 .compact-toolbar {
     flex-shrink: 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     padding: 6px 0;
@@ -906,7 +909,7 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     height: 32px;
     padding: 0 10px;
     border: 1px solid transparent;
@@ -919,6 +922,10 @@
     white-space: nowrap;
     min-width: 0;
 }
+/* 胶囊只按内容占宽；标签内容长时整枚换到下一行，不挤压账户/日期 */
+.compact-pill { flex: 0 0 auto; }
+/* 有标签时把标签胶囊排到最后：放不下就整枚换行，图片仍和账户/日期在上一行 */
+.compact-toolbar.has-tags #compact-tag-pill { order: 10; }
 .compact-toolbar .tm-row-icon {
     width: 18px;
     height: 18px;
@@ -926,7 +933,18 @@
     border-radius: 5px;
 }
 .compact-pill i { font-size: 0.8rem; color: var(--bs-secondary-color); }
+.compact-pill.has-value {
+    color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.14);
+}
 .compact-pill.has-value i { color: var(--bs-primary); }
+.compact-pill .cp-label {
+    min-width: 0;
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .compact-toolbar .tm-row-value { flex: 0 1 auto; font-size: 0.78rem; font-weight: 600; }
 .compact-toolbar .acc-trigger-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

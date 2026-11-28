@@ -211,6 +211,7 @@ function syncCompactToolbar() {
         if (splitMain) splitCompact.disabled = splitMain.disabled;
     }
     syncCompactAttachment();
+    syncCompactTagPill();
 }
 
 /** 紧凑模式：没有图片时不显示图片卡片；有图片时胶囊显示“N张” */
@@ -223,6 +224,21 @@ function syncCompactAttachment() {
     if (lab) lab.textContent = n > 0 ? `${n}张` : '图片';
     const pill = $('compact-img-pill');
     if (pill) pill.classList.toggle('has-value', n > 0);
+}
+
+/** 紧凑模式：标签胶囊显示已经输入的标签，有内容时高亮；没有内容恢复成「标签」 */
+function syncCompactTagPill() {
+    const inp = $('edit-trans-tags');
+    const pill = $('compact-tag-pill');
+    if (!pill) return;
+    const raw = inp && inp.value ? inp.value.trim() : '';
+    const tags = raw ? raw.split(/\s+/).filter(Boolean) : [];
+    const lab = pill.querySelector('.cp-label');
+    if (lab) lab.textContent = tags.length ? tags.join(' ') : '标签';
+    pill.classList.toggle('has-value', tags.length > 0);
+    pill.title = tags.length ? tags.join(' ') : '添加标签';
+    const bar = $('compact-toolbar');
+    if (bar) bar.classList.toggle('has-tags', tags.length > 0);
 }
 
 function openCompactAttachment() {
@@ -239,8 +255,14 @@ function openCompactTagEditor() {
     if (!inp || inp.disabled) return;
     if (typeof _padTempHidden !== 'undefined') _padTempHidden = true;
     amountPadSync();
+    v2.classList.remove('compact-editing-note');
     v2.classList.add('compact-editing-tag');
-    setTimeout(() => { if (!inp.disabled) inp.focus(); }, 30);
+    syncCompactTagPill();
+    _resetCompactEditorScroll();
+    // 5.2.2：必须在点击事件里同步 focus，延迟后 iOS 不认用户手势，系统键盘不会弹出
+    void inp.offsetHeight;   // 先让标签编辑器完成布局，iOS 才会把键盘弹到这个输入框上
+    try { inp.focus({ preventScroll: true }); } catch (_) { inp.focus(); }
+    scheduleCompactEditorAlign();
 }
 
 function closeCompactTagEditor() {
@@ -248,6 +270,7 @@ function closeCompactTagEditor() {
     if (v2) v2.classList.remove('compact-editing-tag');
     const inp = $('edit-trans-tags');
     if (inp) inp.blur();
+    syncCompactTagPill();
     setTimeout(() => {
         const a = document.activeElement;
         if (!_isTransTextInput(a) && typeof _padTempHidden !== 'undefined' && _padTempHidden) {
@@ -260,6 +283,75 @@ function closeCompactTagEditor() {
 function closeCompactEditors() {
     const v2 = _transModalV2();
     if (v2) v2.classList.remove('compact-editing-note', 'compact-editing-tag');
+}
+
+/* ─────────── 5.2.2：系统键盘弹出后把抬起的输入行拉回可视区 ─────────── */
+let _compactEditorAlignTimer = 0;
+
+function _resetCompactEditorScroll() {
+    const v2 = _transModalV2();
+    if (!v2 || !v2.classList.contains('trans-compact')) return;
+    const body = document.querySelector('#editTransactionModal .modal-body');
+    if (body) body.scrollTop = 0;
+}
+
+/** iOS 打开系统键盘时会把整页往上顶，输入行可能被推到屏幕外；这里把页面和表单滚动都拉回顶部 */
+function _alignCompactEditor() {
+    const v2 = _transModalV2();
+    if (!v2 || !v2.classList.contains('trans-compact')) return;
+    if (!v2.classList.contains('compact-editing-note') && !v2.classList.contains('compact-editing-tag')) return;
+    _resetCompactEditorScroll();
+    try { window.scrollTo(0, 0); } catch (_) {}
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+    const row = v2.classList.contains('compact-editing-tag') ? $('compact-tag-row') : $('compact-amount-row');
+    if (row) {
+        const r = row.getBoundingClientRect();
+        const vv = window.visualViewport;
+        const viewTop = vv ? vv.offsetTop : 0;
+        const viewBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+        if (r.bottom < viewTop || r.top > viewBottom) {
+            try { row.scrollIntoView({ block: 'center' }); } catch (_) {}
+        }
+    }
+}
+
+function scheduleCompactEditorAlign() {
+    clearTimeout(_compactEditorAlignTimer);
+    _compactEditorAlignTimer = setTimeout(_alignCompactEditor, 260);
+}
+
+/** 点备注行：不要用浏览器默认的 focus 滚动，交给上面的对齐逻辑 */
+function focusTransNote() {
+    const inp = $('edit-trans-desc');
+    if (!inp || inp.disabled) return;
+    const v2 = _transModalV2();
+    if (v2 && v2.classList.contains('trans-compact') && !_inSplit()) {
+        // 5.2.2：抬升/收键盘都自己处理，不依赖 focusin 是否触发
+        if (typeof _padTempHidden !== 'undefined') _padTempHidden = true;
+        amountPadSync();
+        v2.classList.remove('compact-editing-tag');
+        v2.classList.add('compact-editing-note');
+    } else if (v2) {
+        v2.classList.remove('compact-editing-tag');
+    }
+    _resetCompactEditorScroll();
+    // 5.2.2：同步 focus，保证 iOS 系统键盘正常弹出
+    try { inp.focus({ preventScroll: true }); } catch (_) { inp.focus(); }
+    scheduleCompactEditorAlign();
+}
+
+/** 拆分模式判断（拆分不支持紧凑布局） */
+function _inSplit() {
+    return typeof _inSplitMode !== 'undefined' && _inSplitMode;
+}
+
+/** 点标签行：紧凑模式走标签胶囊的编辑器；经典模式直接聚焦原输入框 */
+function focusTransTags() {
+    const v2 = _transModalV2();
+    if (v2 && v2.classList.contains('trans-compact')) { openCompactTagEditor(); return; }
+    const inp = $('edit-trans-tags');
+    if (inp && !inp.disabled) inp.focus();
 }
 
 function _isTransTextInput(el) {
@@ -277,9 +369,11 @@ document.addEventListener('focusin', e => {
     if (t.id === 'edit-trans-desc') {
         v2.classList.add('compact-editing-note');
         v2.classList.remove('compact-editing-tag');
+        scheduleCompactEditorAlign();
     } else if (t.id === 'edit-trans-tags') {
         v2.classList.add('compact-editing-tag');
         v2.classList.remove('compact-editing-note');
+        scheduleCompactEditorAlign();
     }
 });
 
@@ -313,6 +407,18 @@ document.addEventListener('DOMContentLoaded', () => {
             applyTransFormLayout();
         });
     }
+    // 系统键盘弹出/收起时（visualViewport 尺寸变化）重新对齐一次
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            const v2 = _transModalV2();
+            if (v2 && v2.classList.contains('trans-compact') &&
+                (v2.classList.contains('compact-editing-note') || v2.classList.contains('compact-editing-tag'))) {
+                scheduleCompactEditorAlign();
+            }
+        });
+    }
+    const tagInput = $('edit-trans-tags');
+    if (tagInput) tagInput.addEventListener('input', syncCompactTagPill);
     applyTransFormLayout();
     renderTransFormStyleSettings();
 });
